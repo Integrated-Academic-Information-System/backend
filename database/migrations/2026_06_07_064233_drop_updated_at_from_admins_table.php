@@ -11,9 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('admins', function (Blueprint $table) {
-            $table->dropColumn('updated_at');
-        });
+        // No-op: admins table does not include timestamps in the final schema.
     }
 
     /**
@@ -21,8 +19,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('admins', function (Blueprint $table) {
-            $table->string('updated_at');
-        });
+        // No-op.
     }
 };

@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // No-op: admins table does not include timestamps in the final schema.
+        // No-op: admins table already defines its primary key in the create migration.
     }
 
     /**
@@ -19,6 +19,5 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // No-op.
     }
 };
