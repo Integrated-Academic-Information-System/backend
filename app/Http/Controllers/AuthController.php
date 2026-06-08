@@ -15,8 +15,16 @@ class AuthController extends Controller
             'password'  => 'required|string',
         ]);
 
+        $requested_user_name = $request->user_name;
         // Find user by username
-        $user = Admin::where('user_name', $request->user_name)->first();
+
+        if (str_contains(strtolower($requested_user_name), strtolower("admin"))) {
+            $user = Admin::where('user_name', $request->user_name)->first();
+        }else{
+            return response()->json([
+                'message' => 'Can not login! Try again.'
+            ], 401);
+        }
 
         // Check if user exists and password matches
         if (!$user || !Hash::check($request->password, $user->password)) {
