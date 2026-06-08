@@ -11,11 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('admins', function (Blueprint $table) {
-            $table->id();
-            $table->string('user_name')->unique();
-            $table->string('password', 512); // only password included according to the requirements
-        });
+        // No-op: admins now keeps its primary key.
     }
 
     /**
@@ -23,6 +19,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('admins');
+        // No-op.
     }
 };
