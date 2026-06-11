@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Admin;
+use App\Models\Student;
+use App\Models\Teacher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -28,13 +30,27 @@ class AuthController extends Controller
         //     ], 401);
         // }
 
-        if (!str_contains(strtolower($requested_user_name), 'admin')) {
+        $teacher_status = 100;
+
+        if (str_contains(strtolower($requested_user_name), 'admin')) {
+            $user = Admin::where('user_name', $request->user_name)->first();
+            $outGoingUser = $user->user_name;
+        } else if (str_contains(strtolower($requested_user_name), 'reg')) {
+            $user = Student::where('reg_no', $request->user_name)->first();
+            $outGoingUser = $user->reg_no;
+        } else if (str_contains(strtolower($requested_user_name), 'teacher')) {
+            $user = Teacher::where('user_name', $request->user_name)->first();
+            $outGoingUser = $user->user_name;
+            if ($user->role_status === 0) {
+                $teacher_status = 0;
+            } else if($user->role_status === 1) {
+               $teacher_status = 1;
+            }
+        } else {
             return response()->json([
                 'message' => 'Can not login! Try again.'
             ], 401);
         }
-
-        $user = Admin::where('user_name', $request->user_name)->first();
 
         // Check if user exists and password matches
         if (!$user || !Hash::check($request->password, $user->password)) {
@@ -55,10 +71,10 @@ class AuthController extends Controller
         return response()->json([
             'token'      => $token,
             'token_type' => 'bearer',
-            'expires_in' => config('jwt.ttl') * 60*6, // seconds
-            'user_name'  => $user->user_name,
+            'expires_in' => config('jwt.ttl') * 60 * 6, // seconds
+            'user_name'  => $outGoingUser,
+            'teacher_status' => $teacher_status,
         ]);
-
     }
 
     public function logout(Request $request)
@@ -72,12 +88,4 @@ class AuthController extends Controller
         return response()->json(['message' => 'Logged out']);
     }
 
-    // public function logout(Request $request)
-    // {
-    //     $user = $request->user();
-    //     if ($user && $user->currentAccessToken()) {
-    //         $user->currentAccessToken()->delete();
-    //     }
-    //     return response()->json(['message' => 'Logged out']);
-    // }
 }
