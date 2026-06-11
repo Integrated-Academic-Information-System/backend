@@ -42,6 +42,21 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        'admin' => [
+            'driver' => 'jwt',
+            'provider' => 'admins',
+        ],
+
+        'student' => [
+            'driver' => 'jwt',
+            'provider' => 'students',
+        ],
+
+        'teacher' => [
+            'driver' => 'jwt',
+            'provider' => 'teachers',
+        ],
     ],
 
     /*
@@ -62,15 +77,21 @@ return [
     */
 
     'providers' => [
-        'users' => [
+
+        'admins' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', User::class),
+            'model' => App\Models\Admin::class,
         ],
 
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
+        'students' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Student::class,
+        ],
+
+        'teachers' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Teacher::class,
+        ],
     ],
 
     /*
