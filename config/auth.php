@@ -43,10 +43,20 @@ return [
             'provider' => 'users',
         ],
 
-        'api' => [                        
-        'driver'   => 'jwt',
-        'provider' => 'admins',
-    ],
+        'admin' => [
+            'driver' => 'jwt',
+            'provider' => 'admins',
+        ],
+
+        'student' => [
+            'driver' => 'jwt',
+            'provider' => 'students',
+        ],
+
+        'teacher' => [
+            'driver' => 'jwt',
+            'provider' => 'teachers',
+        ],
     ],
 
     /*
@@ -67,19 +77,20 @@ return [
     */
 
     'providers' => [
-        // 'users' => [
-        //     'driver' => 'eloquent',
-        //     'model' => App\Models\User::class,
-        // ],
-
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
 
         'admins' => [
             'driver' => 'eloquent',
-            'model'  => App\Models\Admin::class,
+            'model' => App\Models\Admin::class,
+        ],
+
+        'students' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Student::class,
+        ],
+
+        'teachers' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Teacher::class,
         ],
     ],
 
