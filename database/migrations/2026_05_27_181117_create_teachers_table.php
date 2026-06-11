@@ -14,9 +14,12 @@ return new class extends Migration
         Schema::create('teachers', function (Blueprint $table) {
             $table->id();
             $table->string('name', 60);
+            $table->string('user_name')->unique();   
+            $table->string('password');              
             $table->string('mobile_number', 12)->nullable();
             $table->string('email', 50)->unique();
             $table->tinyInteger('access_status')->default(1);
+            $table->tinyInteger('role_status')->default(0);
             $table->timestamps();
         });
     }
