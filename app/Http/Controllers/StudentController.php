@@ -11,7 +11,6 @@ class StudentController extends Controller
     public function getStudents(Request $request)
     {
         // Get the selected IDs sent from the React Native dropdowns
-        
         $gradeId = $request->query('grade_id');
         $termId = $request->query('term_id');
         $subjectId = $request->query('subject_id');
