@@ -194,10 +194,6 @@ class DatabaseSeeder extends Seeder
             'role_status'   => 0, // Subject Teacher
         ]);
 
-        // Link teacher_nimali (ID: 2) to Subject ID: 3 (Mathematics)
-        DB::table('teacher_has_subject')->insert([
-            'teacher_id' => 2,
-            'subject_id' => 3
-        ]);
+    
     }
 }
