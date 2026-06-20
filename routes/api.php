@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\MarkController;
 
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
@@ -15,6 +16,9 @@ use App\Http\Controllers\AuthController;
 // A GET request/when come to students route, run getStudents function in StudentController to fetch all students from the database and return as JSON response to the frontend 
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/students', [StudentController::class, 'getStudents']);
+
+// Route to handle saving marks. (Currently unprotected for testing, later move to auth:api group)
+Route::post('/save-marks', [MarkController::class, 'saveMarks']);
 
 Route::middleware('auth:api')->group(function () {
     
