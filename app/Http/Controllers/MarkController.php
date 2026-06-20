@@ -28,23 +28,42 @@ class MarkController extends Controller
 
                 $student = Student::find($data['student_id']);
 
-                // 1. Create a new record in the 'marks' table
-                $markRecord = Mark::create([
-                    'mark' => $data['mark']
-                ]);
+                // 1. Database eke me lamayata kalin marks dala thiyenawada kiyala check karanawa
+                $existingRecord = StudentHasMark::where('student_id', $student->id)
+                    ->where('grade_has_sub_grade_id', 1) // Dummy ID
+                    ->where('subject_id', 1)             // Dummy ID
+                    ->where('term_id', 1)                // Dummy ID
+                    ->where('exam_year_id', 1)           // Dummy ID
+                    ->first();
 
-                // 2. Create the relationship in 'student_has_marks' table
-                // Note: Hardcoded IDs (1) are used for relationships (term, subject, etc.) 
-                // until you build the dynamic dropdown data fetching from DB.
-                StudentHasMark::create([
-                    'student_id' => $student->id,
-                    'student_reg_no' => $student->reg_no ?? 'N/A',
-                    'marks_id' => $markRecord->id,
-                    'grade_has_sub_grade_id' => 1, // Dummy ID - Update later
-                    'subject_id' => 1,             // Dummy ID - Update later
-                    'term_id' => 1,                // Dummy ID - Update later
-                    'exam_year_id' => 1            // Dummy ID - Update later
-                ]);
+                if ($existingRecord) {
+                    // 2. if there is an existing record, update the mark in the 'marks' table
+                    $mark = Mark::find($existingRecord->marks_id);
+                    if ($mark) {
+                        $mark->update([
+                            'mark' => $data['mark']
+                        ]);
+                    }
+                } else {
+                    // 3. If no existing record, create a new mark in the 'marks' table
+                    $markRecord = Mark::create([
+                        'mark' => $data['mark']
+                    ]);
+
+                    // 4. Create the relationship in 'student_has_marks' table
+                    // Note: Hardcoded IDs (1) are used for relationships (term, subject, etc.) 
+                    // until you build the dynamic dropdown data fetching from DB.
+                    StudentHasMark::create([
+                        'student_id' => $student->id,
+                        'student_reg_no' => $student->reg_no ?? 'N/A',
+                        'marks_id' => $markRecord->id,
+                        'grade_has_sub_grade_id' => 1, // Dummy ID - Update later
+                        'subject_id' => 1,             // Dummy ID - Update later
+                        'term_id' => 1,                // Dummy ID - Update later
+                        'exam_year_id' => 1            // Dummy ID - Update later
+                    ]);
+                }
+
             }
 
             DB::commit();
