@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('sub_grades', function (Blueprint $table) {
             $table->id();
-            $table->char('name', 1);
+            $table->string('name'); // e.g., "A", "B", "C"
             $table->timestamps();
         });
     }

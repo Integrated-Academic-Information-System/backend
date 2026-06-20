@@ -3,26 +3,49 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Student; // this is Model connected to students table in database
-use Illuminate\Support\Facades\DB; // this is used to perform database operations like transactions, queries, etc.
+use App\Models\Student;
+use Illuminate\Support\Facades\DB;
 
 class StudentController extends Controller
 {
-    // Function to fetch all students from the database and return as JSON response to the frontend
-    public function getStudents()
+    public function getStudents(Request $request)
     {
-        // Fetch all students from the database along with their marks using a left join to include students without marks
-        $students = DB::table('students')
-            ->leftJoin('student_has_marks', 'students.id', '=', 'student_has_marks.student_id')
-            ->leftJoin('marks', 'student_has_marks.marks_id', '=', 'marks.id')
-            ->select('students.*', 'marks.mark as marks') // Select all student fields and the associated mark (if any)
-            ->get();
+        // Get the selected IDs sent from the React Native dropdowns
+        
+        $gradeId = $request->query('grade_id');
+        $termId = $request->query('term_id');
+        $subjectId = $request->query('subject_id');
+        $examYearId = $request->query('exam_year_id');
 
-            
-        // return the students as a JSON response with a success message and HTTP status code 200 (OK) for the frontend to consume
+        // Base query for the students table
+        $query = DB::table('students');
+
+        // 1. FILTER ROSTER BY CLASS: Only fetch students who belong to the selected class
+        if ($gradeId) {
+            $query->where('students.grade_has_sub_grade_id', $gradeId);
+        }
+
+        // 2. STRICT JOIN: Only join marks if ALL dropdowns (including Subject) are selected
+        if ($gradeId && $termId && $subjectId && $examYearId) {
+            $students = $query->select('students.*', 'marks.mark as marks')
+                ->leftJoin('student_has_marks', function($join) use ($gradeId, $termId, $subjectId, $examYearId) {
+                    $join->on('students.id', '=', 'student_has_marks.student_id')
+                         // All conditions must match exactly
+                         ->where('student_has_marks.grade_has_sub_grade_id', '=', $gradeId)
+                         ->where('student_has_marks.term_id', '=', $termId)
+                         ->where('student_has_marks.subject_id', '=', $subjectId)
+                         ->where('student_has_marks.exam_year_id', '=', $examYearId);
+                })
+                ->leftJoin('marks', 'student_has_marks.marks_id', '=', 'marks.id')
+                ->get();
+        } else {
+            // If subject (or any other field) is missing, just return students with NULL marks
+            $students = $query->select('students.*', DB::raw('NULL as marks'))->get();
+        }
+
         return response()->json([
             'success' => true,
-            'message' => 'Students fetched successfully',
+            'message' => 'Filtered students and marks fetched successfully',
             'data' => $students
         ], 200);
     }

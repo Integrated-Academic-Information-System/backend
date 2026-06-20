@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('exam_years', function (Blueprint $table) {
             $table->id(); 
-            $table->integer('year'); // year INT
+            $table->string('year'); // year VARCHAR(255 by default)
             $table->timestamps(); 
         });
     }

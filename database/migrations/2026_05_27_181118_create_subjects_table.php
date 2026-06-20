@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('subjects', function (Blueprint $table) {
             $table->id();
-            $table->string('name', 45);
+            $table->string('name'); // name VARCHAR(255 by default)
             $table->string('subject_code', 5)->unique();
             $table->timestamps();
         });

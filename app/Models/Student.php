@@ -19,6 +19,7 @@ class Student extends Authenticatable implements JWTSubject
         'mobile_number',
         'email',
         'status',
+        'grade_has_sub_grade_id',
     ];
 
     protected $hidden = [

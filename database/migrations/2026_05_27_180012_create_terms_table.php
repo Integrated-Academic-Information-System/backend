@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('terms', function (Blueprint $table) {
             $table->id(); // from this create auto-incrementing 'id' INT PRIMARY KEY
-            $table->string('name', 10); // name VARCHAR(10)
+            $table->string('name'); // name VARCHAR(255 by default)
             $table->timestamps(); // Laravel default  for create_time, update_time TIMESTAMP  
         });
     }
