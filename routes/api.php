@@ -7,22 +7,44 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MarkController;
+use App\Http\Controllers\FormDataController;
 
-// Route::get('/user', function (Request $request) {
-//     return $request->user();
-// })->middleware('auth:sanctum');
+    /*
+    Public Routes
+    */
+
+    // Login
+    Route::post('/login', [AuthController::class, 'login']);
+
+    // Get all students
+    Route::get('/students', [StudentController::class, 'getStudents']);
+
+    // Save marks (currently public for testing)
+    Route::post('/save-marks', [MarkController::class, 'saveMarks']);
 
 
-// A GET request/when come to students route, run getStudents function in StudentController to fetch all students from the database and return as JSON response to the frontend 
-Route::post('/login', [AuthController::class, 'login']);
-Route::get('/students', [StudentController::class, 'getStudents']);
+    // Fetch dropdown data (Terms, Grades, Subjects)
+    Route::get('/form-data', [FormDataController::class, 'getDropdownData']);
 
-// Route to handle saving marks. (Currently unprotected for testing, later move to auth:api group)
-Route::post('/save-marks', [MarkController::class, 'saveMarks']);
+    /*
+    Protected Routes (Require Authentication)
+    */
 
-Route::middleware('auth:api')->group(function () {
-    
-    Route::post('/logout',  [AuthController::class, 'logout']);
 
-    // your protected routes here...
-});
+    Route::middleware('auth:api')->group(function () {
+
+       
+
+        // Logout
+        Route::post('/logout', [AuthController::class, 'logout']);
+
+    });
+
+
+    /*
+    Default Authenticated User Route (Optional)
+    */
+
+    // Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    //     return $request->user();
+    // });

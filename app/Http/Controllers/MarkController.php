@@ -13,31 +13,34 @@ class MarkController extends Controller
     // Function to handle saving marks sent from the frontend
     public function saveMarks(Request $request)
     {
-        // Extract data from the incoming JSON request
-        $marksData = $request->input('marks_data'); // Array of { student_id, mark }
+        $marksData = $request->input('marks_data'); 
+        
+        // Extract dynamic IDs from request
+        $examYearId = $request->input('exam_year_id'); 
+        $termId = $request->input('term_id');
+        $gradeId = $request->input('grade_id');
+        $subjectId = $request->input('subject_id');
         
         try {
-            // Use a database transaction to ensure all or nothing is saved
             DB::beginTransaction();
 
             foreach ($marksData as $data) {
-                // Skip if no mark is provided for this student
                 if ($data['mark'] === null || $data['mark'] === '') {
                     continue; 
                 }
 
                 $student = Student::find($data['student_id']);
 
-                // 1. Database eke me lamayata kalin marks dala thiyenawada kiyala check karanawa
+                // Find if a record already exists with these dynamic IDs
                 $existingRecord = StudentHasMark::where('student_id', $student->id)
-                    ->where('grade_has_sub_grade_id', 1) // Dummy ID
-                    ->where('subject_id', 1)             // Dummy ID
-                    ->where('term_id', 1)                // Dummy ID
-                    ->where('exam_year_id', 1)           // Dummy ID
+                    ->where('grade_has_sub_grade_id', $gradeId) 
+                    ->where('subject_id', $subjectId)           
+                    ->where('term_id', $termId)                 
+                    ->where('exam_year_id', $examYearId) // Real year ID added here                  
                     ->first();
 
                 if ($existingRecord) {
-                    // 2. if there is an existing record, update the mark in the 'marks' table
+                    // Update existing mark
                     $mark = Mark::find($existingRecord->marks_id);
                     if ($mark) {
                         $mark->update([
@@ -45,32 +48,28 @@ class MarkController extends Controller
                         ]);
                     }
                 } else {
-                    // 3. If no existing record, create a new mark in the 'marks' table
+                    // Create new mark and link it using dynamic IDs
                     $markRecord = Mark::create([
                         'mark' => $data['mark']
                     ]);
 
-                    // 4. Create the relationship in 'student_has_marks' table
-                    // Note: Hardcoded IDs (1) are used for relationships (term, subject, etc.) 
-                    // until you build the dynamic dropdown data fetching from DB.
                     StudentHasMark::create([
                         'student_id' => $student->id,
                         'student_reg_no' => $student->reg_no ?? 'N/A',
                         'marks_id' => $markRecord->id,
-                        'grade_has_sub_grade_id' => 1, // Dummy ID - Update later
-                        'subject_id' => 1,             // Dummy ID - Update later
-                        'term_id' => 1,                // Dummy ID - Update later
-                        'exam_year_id' => 1            // Dummy ID - Update later
+                        'grade_has_sub_grade_id' => $gradeId, 
+                        'subject_id' => $subjectId,           
+                        'term_id' => $termId,                 
+                        'exam_year_id' => $examYearId // Real year ID added here                   
                     ]);
                 }
-
             }
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Marks successfully saved to the database!'
+                'message' => 'Marks successfully saved and updated!'
             ], 200);
 
         } catch (\Exception $e) {
