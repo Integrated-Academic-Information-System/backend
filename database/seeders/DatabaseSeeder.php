@@ -7,6 +7,7 @@ use App\Models\Student;
 use App\Models\Teacher;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class DatabaseSeeder extends Seeder
 {
@@ -183,8 +184,10 @@ class DatabaseSeeder extends Seeder
             'access_status' => 1,
             'role_status'   => 1, // Class Teacher
         ]);
+        
 
-        Teacher::create([
+        // 4. Create Teacher Nimali Silva and assign her to Mathematics and Grade 6-A & 6-B
+        $nimali = Teacher::create([
             'name'          => 'Ms. Nimali Silva',
             'user_name'     => 'teacher_nimali',
             'password'      => bcrypt('teacher123'),
@@ -192,6 +195,24 @@ class DatabaseSeeder extends Seeder
             'mobile_number' => '0723456789',
             'access_status' => 1,
             'role_status'   => 0, // Subject Teacher
+        ]);
+
+        // assign Nimali to teach Mathematics (subject_id = 3)
+        DB::table('teacher_has_subject')->insert([
+            'teacher_id' => $nimali->id,
+            'subject_id' => 3
+        ]);
+
+        // assign Nimali to Grade 6-A (ID: 1) and 6-B (ID: 2)
+        DB::table('teacher_has_grade')->insert([
+            ['teacher_id' => $nimali->id, 'grade_has_sub_grade_id' => 1],
+            ['teacher_id' => $nimali->id, 'grade_has_sub_grade_id' => 2],
+        ]);
+
+        // 5. Assign Kamal Perera (ID: 1) as Class Teacher for Grade 6-A (ID: 1)
+        DB::table('teacher_has_grade')->insert([
+            'teacher_id' => 1, 
+            'grade_has_sub_grade_id' => 1
         ]);
 
     
