@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('bucket_subjects', function (Blueprint $table) {
             $table->id();
-            $table->string('name', 15);
+            $table->string('name', 100);
             $table->string('subject_code', 5);
             $table->timestamps();
         });
