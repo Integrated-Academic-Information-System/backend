@@ -14,6 +14,7 @@ class Student extends Authenticatable implements JWTSubject
         'password',
         'name',
         'address',
+        'dob',
         'reg_date',
         'leave_date',
         'mobile_number',
@@ -25,6 +26,11 @@ class Student extends Authenticatable implements JWTSubject
     protected $hidden = [
         'password',
     ];
+
+    public function grade()
+    {
+        return $this->belongsTo(Grade::class, 'grade_has_sub_grade_id', 'id');
+    }
 
     // Required for JWT if students can also login
     public function getJWTIdentifier()
