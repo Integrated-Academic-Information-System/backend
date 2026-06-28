@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
         // This ensures that grade_has_sub_grade_id = 1 actually exists before adding students
         $this->call([
             SchoolDataSeeder::class,
+            SubjectAssignmentSeeder::class
         ]);
 
 
@@ -37,6 +38,7 @@ class DatabaseSeeder extends Seeder
             'password'      => bcrypt('student123'),
             'name'          => 'John Doe',
             'address'       => '123 Main St, Colombo',
+            'dob'           => '2018-01-15',
             'reg_date'      => '2024-01-15',
             'leave_date'    => null,
             'mobile_number' => '0771234567',
@@ -50,6 +52,7 @@ class DatabaseSeeder extends Seeder
             'password'      => bcrypt('student123'),
             'name'          => 'Kasun Perera',
             'address'       => 'Temple Road, Maharagama',
+            'dob'           => '2018-01-15',
             'reg_date'      => '2024-01-16',
             'leave_date'    => null,
             'mobile_number' => '0712223334',
@@ -66,6 +69,7 @@ class DatabaseSeeder extends Seeder
             'password'      => bcrypt('student123'),
             'name'          => 'Jane Smith',
             'address'       => '456 Lake Rd, Kandy',
+            'dob'           => '2018-01-15',
             'reg_date'      => '2024-02-20',
             'leave_date'    => null,
             'mobile_number' => '0777654321',
@@ -79,6 +83,7 @@ class DatabaseSeeder extends Seeder
             'password'      => bcrypt('student123'),
             'name'          => 'Nimali Silva',
             'address'       => 'School Lane, Galle',
+            'dob'           => '2018-01-14',
             'reg_date'      => '2024-01-18',
             'leave_date'    => null,
             'mobile_number' => '0723334445',
@@ -95,6 +100,7 @@ class DatabaseSeeder extends Seeder
             'password'      => bcrypt('student123'),
             'name'          => 'Ruwan Kumara',
             'address'       => 'Station Road, Matara',
+            'dob'           => '2018-01-15',
             'reg_date'      => '2024-01-10',
             'leave_date'    => null,
             'mobile_number' => '0754445556',
@@ -108,6 +114,7 @@ class DatabaseSeeder extends Seeder
             'password'      => bcrypt('student123'),
             'name'          => 'Sanduni Fernando',
             'address'       => 'Galle Road, Panadura',
+            'dob'           => '2018-01-15',
             'reg_date'      => '2024-01-11',
             'leave_date'    => null,
             'mobile_number' => '0765556667',
@@ -124,6 +131,7 @@ class DatabaseSeeder extends Seeder
             'password'      => bcrypt('student123'),
             'name'          => 'Kamal Addararachchi',
             'address'       => 'Flower Road, Kurunegala',
+            'dob'           => '2018-01-15',
             'reg_date'      => '2023-01-15',
             'leave_date'    => null,
             'mobile_number' => '0786667778',
@@ -137,6 +145,7 @@ class DatabaseSeeder extends Seeder
             'password'      => bcrypt('student123'),
             'name'          => 'Amandi Perera',
             'address'       => 'Lake View, Kandy',
+            'dob'           => '2018-01-15',
             'reg_date'      => '2023-01-20',
             'leave_date'    => null,
             'mobile_number' => '0717778889',
@@ -153,12 +162,13 @@ class DatabaseSeeder extends Seeder
             'password'      => bcrypt('student123'),
             'name'          => 'Dasun Shanaka',
             'address'       => 'Beach Road, Negombo',
+            'dob'           => '2018-01-15',
             'reg_date'      => '2023-02-15',
             'leave_date'    => null,
             'mobile_number' => '0728889990',
             'email'         => 'dasun@example.com',
             'status'        => 1,
-            'grade_has_sub_grade_id' => 5, 
+            'grade_has_sub_grade_id' => 16, 
         ]);
 
         Student::create([
@@ -166,12 +176,13 @@ class DatabaseSeeder extends Seeder
             'password'      => bcrypt('student123'),
             'name'          => 'Piyumi Hansamali',
             'address'       => 'High Level Rd, Nugegoda',
+            'dob'           => '2018-01-15',
             'reg_date'      => '2023-02-18',
             'leave_date'    => null,
             'mobile_number' => '0779990001',
             'email'         => 'piyumi@example.com',
             'status'        => 1,
-            'grade_has_sub_grade_id' => 5, 
+            'grade_has_sub_grade_id' => 23, 
         ]);
 
         // 3. Create Teachers
@@ -215,6 +226,7 @@ class DatabaseSeeder extends Seeder
             'grade_has_sub_grade_id' => 1
         ]);
 
+        $this->call(StudentBucketSeeder::class);
     
     }
 }

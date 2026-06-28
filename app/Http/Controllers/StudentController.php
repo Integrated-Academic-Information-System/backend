@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class StudentController extends Controller
 {
@@ -65,4 +66,64 @@ class StudentController extends Controller
             'data' => $students
         ], 200);
     }
+
+
+
+    public function profile(Request $request)
+{
+    try {
+        $student = JWTAuth::parseToken()->authenticate();
+
+        if (!$student) {
+            return response()->json(['message' => 'Student not found'], 404);
+        }
+
+        $gradeHasSubGradeId = $student->grade_has_sub_grade_id;
+
+        // Grade label
+        $gradeInfo = DB::table('grade_has_sub_grade')
+            ->join('grades', 'grade_has_sub_grade.grade_id', '=', 'grades.id')
+            ->join('sub_grades', 'grade_has_sub_grade.sub_grade_id', '=', 'sub_grades.id')
+            ->where('grade_has_sub_grade.id', $gradeHasSubGradeId)
+            ->select('grades.name as grade_name', 'sub_grades.name as sub_grade_name')
+            ->first();
+
+        $gradeLabel = $gradeInfo
+            ? $gradeInfo->grade_name . ' ' . $gradeInfo->sub_grade_name
+            : 'N/A';
+
+        // Core subjects — from grade
+        $coreSubjects = DB::table('grade_has_subject')
+            ->join('subjects', 'grade_has_subject.subject_id', '=', 'subjects.id')
+            ->where('grade_has_subject.grade_has_sub_grade_id', $gradeHasSubGradeId)
+            ->select('subjects.id', 'subjects.name', 'subjects.subject_code')
+            ->get();
+
+        // Bucket subjects — assigned to this student by admin
+        $bucketSubjects = DB::table('student_has_bucket_subject')
+            ->join('subject_has_bucket_subject', 
+                'student_has_bucket_subject.subject_has_bucket_subject_id', 
+                '=', 
+                'subject_has_bucket_subject.id')
+            ->join('subjects', 'subject_has_bucket_subject.subject_id', '=', 'subjects.id')
+            ->where('student_has_bucket_subject.student_id', $student->id)
+            ->select('subjects.id', 'subjects.name', 'subjects.subject_code')
+            ->get();
+
+        return response()->json([
+            'name'            => $student->name,
+            'reg_no'          => $student->reg_no,
+            'grade'           => $gradeLabel,
+            'dob'             => $student->dob,
+            'address'         => $student->address,
+            'mobile_number'   => $student->mobile_number,
+            'email'           => $student->email,
+            'core_subjects'   => $coreSubjects,
+            'bucket_subjects' => $bucketSubjects,
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json(['message' => 'Unauthorized', 'error' => $e->getMessage()], 401);
+    }
+}
 }

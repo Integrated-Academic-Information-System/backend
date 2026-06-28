@@ -44,28 +44,6 @@ class SchoolDataSeeder extends Seeder
                 ]);
             }
         }
-
-        // 6. Insert All Subjects
-        $subjects = [
-            'First Language (Sinhala/Tamil)', 'English Language', 'Mathematics', 'Science', 
-            'History', 'Geography', 'Citizenship Education (Civics)', 'Religion', 
-            'Aesthetic Subject (Art/Music/Dancing/Drama)', 'ICT', 'PTS',
-            'Business & Accounting Studies', 'Entrepreneurship Studies', 'Foreign Languages',
-            'Agriculture & Food Technology', 'Aquatic Bio-Resources Technology', 'Home Economics', 
-            'Arts & Crafts', 'Mechanical/Electrical/Electronic Technology', 'Design & Technology',
-            'Combined Mathematics', 'Physics', 'Chemistry', 'Biology', 'Agricultural Science',
-            'Accounting', 'Business Studies', 'Economics', 'Science for Technology (SFT)',
-            'Engineering Technology', 'Bio-Systems Technology', 'Logic', 'Media Studies'
-        ];
         
-        foreach ($subjects as $index => $sub) {
-            // Generate a dynamic subject code like S001, S002, S003 based on the array index
-            $code = 'S' . str_pad($index + 1, 3, '0', STR_PAD_LEFT);
-
-            DB::table('subjects')->updateOrInsert(
-                ['name' => $sub],
-                ['subject_code' => $code] // Pass the generated code to the database
-            );
-        }
     }
 }
