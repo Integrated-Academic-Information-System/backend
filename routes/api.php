@@ -9,36 +9,35 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MarkController;
 use App\Http\Controllers\FormDataController;
 
-    /*
+/*
     Public Routes
     */
 
-    // Login
-    Route::post('/login', [AuthController::class, 'login']);
+// Login
+Route::post('/login', [AuthController::class, 'login']);
 
-    // Get all students
-    Route::get('/students', [StudentController::class, 'getStudents']);
+// Get all students
+Route::get('/students', [StudentController::class, 'getStudents']);
 
-    // Save marks (currently public for testing)
-    Route::post('/save-marks', [MarkController::class, 'saveMarks']);
+// Save marks (currently public for testing)
+Route::post('/save-marks', [MarkController::class, 'saveMarks']);
 
 
-    // Fetch dropdown data (Terms, Grades, Subjects)
-    Route::get('/form-data', [FormDataController::class, 'getDropdownData']);
+// Fetch dropdown data (Terms, Grades, Subjects)
+Route::get('/form-data', [FormDataController::class, 'getDropdownData']);
 
-    /*
+/*
     Protected Routes (Require Authentication)
     */
 
+Route::middleware('auth:student')->group(function () {
+    Route::get('/student/profile', [StudentController::class, 'profile']);
+});
 
-    Route::middleware('auth:api')->group(function () {
-
-       
-
-        // Logout
-        Route::post('/logout', [AuthController::class, 'logout']);
-
-    });
+Route::middleware('auth:api')->group(function () {
+    // Logout
+    Route::post('/logout', [AuthController::class, 'logout']);
+});
 
 
     /*
