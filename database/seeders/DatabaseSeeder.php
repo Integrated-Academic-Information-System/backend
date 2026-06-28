@@ -226,6 +226,7 @@ class DatabaseSeeder extends Seeder
             'grade_has_sub_grade_id' => 1
         ]);
 
+        $this->call(StudentBucketSeeder::class);
     
     }
 }
