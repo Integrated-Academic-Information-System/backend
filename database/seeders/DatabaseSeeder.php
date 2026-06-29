@@ -5,228 +5,71 @@ namespace Database\Seeders;
 use App\Models\Admin;
 use App\Models\Student;
 use App\Models\Teacher;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // 1. MUST RUN FIRST: Create terms, years, grades, and subjects
-        // This ensures that grade_has_sub_grade_id = 1 actually exists before adding students
-        $this->call([
-            SchoolDataSeeder::class,
-            SubjectAssignmentSeeder::class
-        ]);
+        $this->call([SchoolDataSeeder::class, SubjectAssignmentSeeder::class]);
 
+        Admin::create(['user_name' => 'admin', 'password' => bcrypt('admin123')]);
 
-        // 2. Create Admin
-        Admin::create([
-            'user_name' => 'admin',
-            'password'  => bcrypt('admin123'),
-        ]);
+        // Get all grades to loop
+        $grades = DB::table('grades')->get();
 
-        // ---------------------------------------------------------
-        // GRADE 6 - A (grade_has_sub_grade_id = 1)
-        // ---------------------------------------------------------
-        Student::create([
-            'reg_no'        => 'REG001',
-            'password'      => bcrypt('student123'),
-            'name'          => 'John Doe',
-            'address'       => '123 Main St, Colombo',
-            'dob'           => '2018-01-15',
-            'reg_date'      => '2024-01-15',
-            'leave_date'    => null,
-            'mobile_number' => '0771234567',
-            'email'         => 'john@example.com',
-            'status'        => 1,
-            'grade_has_sub_grade_id' => 1, 
-        ]);
+        foreach ($grades as $grade) {
+            // 1. Create 10 students per grade
+            for ($i = 1; $i <= 10; $i++) {
+                $student = Student::create([
+                    'reg_no'   => 'REG-' . $grade->id . '-' . $i,
+                    'name'     => 'Student ' . $i . ' of Grade ' . $grade->name,
+                    'password' => bcrypt('student123'),
+                    'grade_id' => $grade->id, // Linked to grades table
+                    'dob'      => '2018-01-01',
+                    'reg_date' => now()->format('Y-m-d'), // Set registration date to current date
+                    'status'   => 1, // Active status
+                    'email'         => 'student' . $grade->id . $i . '@example.com', // Set email
+                    'address'       => 'Default Address',                             // Set address
+                    'mobile_number' => '0710000000',                                  // Set mobile number
+                ]);
 
-        Student::create([
-            'reg_no'        => 'REG002',
-            'password'      => bcrypt('student123'),
-            'name'          => 'Kasun Perera',
-            'address'       => 'Temple Road, Maharagama',
-            'dob'           => '2018-01-15',
-            'reg_date'      => '2024-01-16',
-            'leave_date'    => null,
-            'mobile_number' => '0712223334',
-            'email'         => 'kasun@example.com',
-            'status'        => 1,
-            'grade_has_sub_grade_id' => 1, 
-        ]);
+                // Assign random bucket subject (Optional logic)
+                $bucket = DB::table('subject_has_bucket_subject')->inRandomOrder()->first();
+                if ($bucket) {
+                    DB::table('student_has_bucket_subject')->insert([
+                        'student_id' => $student->id,
+                        'subject_has_bucket_subject_id' => $bucket->id
+                    ]);
+                }
+            }
 
-        // ---------------------------------------------------------
-        // GRADE 6 - B (grade_has_sub_grade_id = 2)
-        // ---------------------------------------------------------
-        Student::create([
-            'reg_no'        => 'REG003',
-            'password'      => bcrypt('student123'),
-            'name'          => 'Jane Smith',
-            'address'       => '456 Lake Rd, Kandy',
-            'dob'           => '2018-01-15',
-            'reg_date'      => '2024-02-20',
-            'leave_date'    => null,
-            'mobile_number' => '0777654321',
-            'email'         => 'jane@example.com',
-            'status'        => 1,
-            'grade_has_sub_grade_id' => 2, 
-        ]);
+            // 2. Create Class Teacher for this Grade
+            $teacher = Teacher::create([
+                'name'        => 'Class Teacher ' . $grade->name,
+                'user_name'   => 'ct_' . strtolower(str_replace(' ', '', $grade->name)),
+                'password'    => bcrypt('teacher123'),
+                'role_status' => 1, // Class Teacher
+                'email'         => 'teacher_' . $grade->id . '@example.com', 
+                'mobile_number' => '077000000' . $grade->id, 
+                'access_status' => 1,
+            ]);
+            
+            // Assign Teacher to this Grade
+            DB::table('teacher_has_grade')->insert([
+                'teacher_id' => $teacher->id,
+                'grade_id'   => $grade->id
+            ]);
 
-        Student::create([
-            'reg_no'        => 'REG004',
-            'password'      => bcrypt('student123'),
-            'name'          => 'Nimali Silva',
-            'address'       => 'School Lane, Galle',
-            'dob'           => '2018-01-14',
-            'reg_date'      => '2024-01-18',
-            'leave_date'    => null,
-            'mobile_number' => '0723334445',
-            'email'         => 'nimali@example.com',
-            'status'        => 1,
-            'grade_has_sub_grade_id' => 2, 
-        ]);
-
-        // ---------------------------------------------------------
-        // GRADE 6 - C (grade_has_sub_grade_id = 3)
-        // ---------------------------------------------------------
-        Student::create([
-            'reg_no'        => 'REG005',
-            'password'      => bcrypt('student123'),
-            'name'          => 'Ruwan Kumara',
-            'address'       => 'Station Road, Matara',
-            'dob'           => '2018-01-15',
-            'reg_date'      => '2024-01-10',
-            'leave_date'    => null,
-            'mobile_number' => '0754445556',
-            'email'         => 'ruwan@example.com',
-            'status'        => 1,
-            'grade_has_sub_grade_id' => 3, 
-        ]);
-
-        Student::create([
-            'reg_no'        => 'REG006',
-            'password'      => bcrypt('student123'),
-            'name'          => 'Sanduni Fernando',
-            'address'       => 'Galle Road, Panadura',
-            'dob'           => '2018-01-15',
-            'reg_date'      => '2024-01-11',
-            'leave_date'    => null,
-            'mobile_number' => '0765556667',
-            'email'         => 'sanduni@example.com',
-            'status'        => 1,
-            'grade_has_sub_grade_id' => 3, 
-        ]);
-
-        // ---------------------------------------------------------
-        // GRADE 7 - A (grade_has_sub_grade_id = 4)
-        // ---------------------------------------------------------
-        Student::create([
-            'reg_no'        => 'REG007',
-            'password'      => bcrypt('student123'),
-            'name'          => 'Kamal Addararachchi',
-            'address'       => 'Flower Road, Kurunegala',
-            'dob'           => '2018-01-15',
-            'reg_date'      => '2023-01-15',
-            'leave_date'    => null,
-            'mobile_number' => '0786667778',
-            'email'         => 'kamal@example.com',
-            'status'        => 1,
-            'grade_has_sub_grade_id' => 4, 
-        ]);
-
-        Student::create([
-            'reg_no'        => 'REG008',
-            'password'      => bcrypt('student123'),
-            'name'          => 'Amandi Perera',
-            'address'       => 'Lake View, Kandy',
-            'dob'           => '2018-01-15',
-            'reg_date'      => '2023-01-20',
-            'leave_date'    => null,
-            'mobile_number' => '0717778889',
-            'email'         => 'amandi@example.com',
-            'status'        => 1,
-            'grade_has_sub_grade_id' => 4, 
-        ]);
-
-        // ---------------------------------------------------------
-        // GRADE 7 - B (grade_has_sub_grade_id = 5)
-        // ---------------------------------------------------------
-        Student::create([
-            'reg_no'        => 'REG009',
-            'password'      => bcrypt('student123'),
-            'name'          => 'Dasun Shanaka',
-            'address'       => 'Beach Road, Negombo',
-            'dob'           => '2018-01-15',
-            'reg_date'      => '2023-02-15',
-            'leave_date'    => null,
-            'mobile_number' => '0728889990',
-            'email'         => 'dasun@example.com',
-            'status'        => 1,
-            'grade_has_sub_grade_id' => 16, 
-        ]);
-
-        Student::create([
-            'reg_no'        => 'REG010',
-            'password'      => bcrypt('student123'),
-            'name'          => 'Piyumi Hansamali',
-            'address'       => 'High Level Rd, Nugegoda',
-            'dob'           => '2018-01-15',
-            'reg_date'      => '2023-02-18',
-            'leave_date'    => null,
-            'mobile_number' => '0779990001',
-            'email'         => 'piyumi@example.com',
-            'status'        => 1,
-            'grade_has_sub_grade_id' => 23, 
-        ]);
-
-        // 3. Create Teachers
-        Teacher::create([
-            'name'          => 'Mr. Kamal Perera',
-            'user_name'     => 'teacher_kamal',
-            'password'      => bcrypt('teacher123'),
-            'email'         => 'teacher1@example.com',
-            'mobile_number' => '0712345678',
-            'access_status' => 1,
-            'role_status'   => 1, // Class Teacher
-        ]);
-        
-
-        // 4. Create Teacher Nimali Silva and assign her to Mathematics and Grade 6-A & 6-B
-        $nimali = Teacher::create([
-            'name'          => 'Ms. Nimali Silva',
-            'user_name'     => 'teacher_nimali',
-            'password'      => bcrypt('teacher123'),
-            'email'         => 'teacher2@example.com',
-            'mobile_number' => '0723456789',
-            'access_status' => 1,
-            'role_status'   => 0, // Subject Teacher
-        ]);
-
-        // assign Nimali to teach Mathematics (subject_id = 3)
-        DB::table('teacher_has_subject')->insert([
-            'teacher_id' => $nimali->id,
-            'subject_id' => 3
-        ]);
-
-        // assign Nimali to Grade 6-A (ID: 1) and 6-B (ID: 2)
-        DB::table('teacher_has_grade')->insert([
-            ['teacher_id' => $nimali->id, 'grade_has_sub_grade_id' => 1],
-            ['teacher_id' => $nimali->id, 'grade_has_sub_grade_id' => 2],
-        ]);
-
-        // 5. Assign Kamal Perera (ID: 1) as Class Teacher for Grade 6-A (ID: 1)
-        DB::table('teacher_has_grade')->insert([
-            'teacher_id' => 1, 
-            'grade_has_sub_grade_id' => 1
-        ]);
-
-        $this->call(StudentBucketSeeder::class);
-    
+            // 3. Assign Teacher to teach a subject in this grade
+            $subject = DB::table('subjects')->inRandomOrder()->first();
+            if ($subject) {
+                DB::table('teacher_has_subject')->insert([
+                    'teacher_id' => $teacher->id,
+                    'subject_id' => $subject->id
+                ]);
+            }
+        }
     }
 }

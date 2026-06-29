@@ -16,34 +16,30 @@ class FormDataController extends Controller
         $years = DB::table('exam_years')->select('id', 'year as name')->get();
         
         $subjectsQuery = DB::table('subjects');
-        $classesQuery = DB::table('grade_has_sub_grade')
-            ->join('grades', 'grade_has_sub_grade.grade_id', '=', 'grades.id')
-            ->join('sub_grades', 'grade_has_sub_grade.sub_grade_id', '=', 'sub_grades.id')
-            ->select(
-                'grade_has_sub_grade.id', 
-                DB::raw("CONCAT(grades.name, ' - ', sub_grades.name) as name"),
-                'grades.name as base_grade'
-            );
+        
+        // Use 'grades' table directly now instead of 'grade_has_sub_grade'
+        $classesQuery = DB::table('grades')->select('id', 'name');
 
         // Filter based on role
         if ($role === 'subject_teacher' && $teacherId) {
-            // Subject teacher sees only assigned subjects and assigned classes
+            // Subject teacher sees only assigned subjects and assigned grades
             $allowedSubjectIds = DB::table('teacher_has_subject')->where('teacher_id', $teacherId)->pluck('subject_id');
-            $allowedClassIds = DB::table('teacher_has_grade')->where('teacher_id', $teacherId)->pluck('grade_has_sub_grade_id');
+            $allowedGradeIds = DB::table('teacher_has_grade')->where('teacher_id', $teacherId)->pluck('grade_id');
             
             $subjectsQuery->whereIn('id', $allowedSubjectIds);
-            $classesQuery->whereIn('grade_has_sub_grade.id', $allowedClassIds);
+            $classesQuery->whereIn('id', $allowedGradeIds);
+            
         } else if ($role === 'class_incharge' && $teacherId) {
-            // Class incharge sees ALL subjects, but ONLY their assigned class
-            $allowedClassIds = DB::table('teacher_has_grade')->where('teacher_id', $teacherId)->pluck('grade_has_sub_grade_id');
-            $classesQuery->whereIn('grade_has_sub_grade.id', $allowedClassIds);
+            // Class incharge sees ALL subjects, but ONLY their assigned grade
+            $allowedGradeIds = DB::table('teacher_has_grade')->where('teacher_id', $teacherId)->pluck('grade_id');
+            $classesQuery->whereIn('id', $allowedGradeIds);
         }
 
         return response()->json([
             'success' => true,
             'data' => [
                 'terms' => $terms,
-                'grades' => $classesQuery->get(),
+                'grades' => $classesQuery->orderBy('id')->get(), // Order by ID to keep Grade 6, 7, 8... order
                 'subjects' => $subjectsQuery->orderBy('name')->get(),
                 'exam_years' => $years
             ]

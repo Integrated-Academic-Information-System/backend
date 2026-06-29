@@ -10,15 +10,13 @@ use Illuminate\Support\Facades\DB;
 
 class MarkController extends Controller
 {
-    // Function to handle saving marks sent from the frontend
     public function saveMarks(Request $request)
     {
         $marksData = $request->input('marks_data'); 
         
-        // Extract dynamic IDs from request
         $examYearId = $request->input('exam_year_id'); 
         $termId = $request->input('term_id');
-        $gradeId = $request->input('grade_id');
+        $gradeId = $request->input('grade_id'); // දැන් මේක grade_id
         $subjectId = $request->input('subject_id');
         
         try {
@@ -31,36 +29,32 @@ class MarkController extends Controller
 
                 $student = Student::find($data['student_id']);
 
-                // Find if a record already exists with these dynamic IDs
+                // Find if a record already exists using the new grade_id
                 $existingRecord = StudentHasMark::where('student_id', $student->id)
-                    ->where('grade_has_sub_grade_id', $gradeId) 
-                    ->where('subject_id', $subjectId)           
-                    ->where('term_id', $termId)                 
-                    ->where('exam_year_id', $examYearId) // Real year ID added here                  
+                    ->where('grade_id', $gradeId) // Updated: grade_id
+                    ->where('subject_id', $subjectId)            
+                    ->where('term_id', $termId)                
+                    ->where('exam_year_id', $examYearId)                
                     ->first();
 
                 if ($existingRecord) {
                     // Update existing mark
                     $mark = Mark::find($existingRecord->marks_id);
                     if ($mark) {
-                        $mark->update([
-                            'mark' => $data['mark']
-                        ]);
+                        $mark->update(['mark' => $data['mark']]);
                     }
                 } else {
-                    // Create new mark and link it using dynamic IDs
-                    $markRecord = Mark::create([
-                        'mark' => $data['mark']
-                    ]);
+                    // Create new mark
+                    $markRecord = Mark::create(['mark' => $data['mark']]);
 
                     StudentHasMark::create([
-                        'student_id' => $student->id,
+                        'student_id'     => $student->id,
                         'student_reg_no' => $student->reg_no ?? 'N/A',
-                        'marks_id' => $markRecord->id,
-                        'grade_has_sub_grade_id' => $gradeId, 
-                        'subject_id' => $subjectId,           
-                        'term_id' => $termId,                 
-                        'exam_year_id' => $examYearId // Real year ID added here                   
+                        'marks_id'       => $markRecord->id,
+                        'grade_id'       => $gradeId, // Updated: grade_id
+                        'subject_id'     => $subjectId,            
+                        'term_id'        => $termId,                
+                        'exam_year_id'   => $examYearId               
                     ]);
                 }
             }
@@ -77,7 +71,7 @@ class MarkController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to save marks.',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage()
             ], 500);
         }
     }
