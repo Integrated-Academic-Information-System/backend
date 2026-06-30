@@ -8,7 +8,7 @@ use App\Http\Controllers\StudentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MarkController;
 use App\Http\Controllers\FormDataController;
-
+use App\Http\Controllers\ReportController;
 /*
     Public Routes
     */
@@ -25,6 +25,9 @@ Route::post('/save-marks', [MarkController::class, 'saveMarks']);
 
 // Fetch dropdown data (Terms, Grades, Subjects)
 Route::get('/form-data', [FormDataController::class, 'getDropdownData']);
+
+// Generate report
+Route::get('/generate-report', [ReportController::class, 'generateReport']);
 
 /*
     Protected Routes (Require Authentication)

@@ -12,7 +12,7 @@ class StudentHasMark extends Model
         'student_id',
         'student_reg_no',
         'marks_id',
-        'grade_has_sub_grade_id',
+        'grade_id',
         'subject_id',
         'term_id',
         'exam_year_id'

@@ -13,7 +13,18 @@ class MarkController extends Controller
 {
     public function saveMarks(Request $request)
     {
-        $user = JWTAuth::parseToken()->authenticate();
+        $user = auth('teacher')->user();
+
+        if (!$user) {
+            $user = auth('admin')->user();
+        }
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Please log in again.'
+            ], 401);
+        }
         
         $marksData = $request->input('marks_data'); 
         $examYearId = $request->input('exam_year_id'); 
@@ -44,6 +55,7 @@ class MarkController extends Controller
         }
 
         try {
+            \Log::info("Payload Received:", $request->all());
             DB::beginTransaction();
 
             foreach ($marksData as $data) {
@@ -52,6 +64,9 @@ class MarkController extends Controller
                 }
 
                 $student = Student::find($data['student_id']);
+                if (!$student) {
+                    continue;
+                }
 
                 $existingRecord = StudentHasMark::where('student_id', $student->id)
                     ->where('grade_id', $gradeId)
