@@ -27,7 +27,6 @@ class StudentController extends Controller
         }
 
         // 2. FILTER STUDENTS BY BUCKET SUBJECT 
-        // If a subject is selected, check if it's a bucket subject. If yes, show only students taking it.
         if ($gradeId && $subjectId) {
             $isCoreSubject = DB::table('grade_has_subject')
                 ->where('grade_id', $gradeId)
@@ -35,26 +34,25 @@ class StudentController extends Controller
                 ->exists();
 
             if (!$isCoreSubject) {
-                // Not a core subject -> Must be a bucket subject! Filter students accordingly.
                 $query->join('student_has_bucket_subject', 'students.id', '=', 'student_has_bucket_subject.student_id')
                       ->join('subject_has_bucket_subject', 'student_has_bucket_subject.subject_has_bucket_subject_id', '=', 'subject_has_bucket_subject.id')
                       ->where('subject_has_bucket_subject.subject_id', $subjectId);
             }
         }
 
-        // 3. Apply Security bounds based on Role
-        if ($role === 'subject_teacher' && $teacherId) {
+        // 3. APPLY SECURITY BOUNDS
+        if ($role !== 'admin' && $teacherId) {
             $allowedClasses = DB::table('teacher_has_grade')->where('teacher_id', $teacherId)->pluck('grade_id')->toArray();
-            $allowedSubjects = DB::table('teacher_has_subject')->where('teacher_id', $teacherId)->pluck('subject_id')->toArray();
-
             $query->whereIn('students.grade_id', $allowedClasses);
 
-            if (!$subjectId || !in_array($subjectId, $allowedSubjects)) {
-                $subjectId = $allowedSubjects[0] ?? null; 
+            // ONLY Subject Teachers get blocked from viewing other subjects. 
+            // Class Incharges CAN view other subjects for Reports.
+            if ($role === 'subject_teacher') {
+                $allowedSubjects = DB::table('teacher_has_subject')->where('teacher_id', $teacherId)->pluck('subject_id')->toArray();
+                if ($subjectId && !in_array($subjectId, $allowedSubjects)) {
+                    $subjectId = $allowedSubjects[0] ?? null; 
+                }
             }
-        } else if ($role === 'class_incharge' && $teacherId) {
-            $allowedClasses = DB::table('teacher_has_grade')->where('teacher_id', $teacherId)->pluck('grade_id')->toArray();
-            $query->whereIn('students.grade_id', $allowedClasses);
         }
 
         // 4. STRICT JOIN FOR MARKS
@@ -82,33 +80,17 @@ class StudentController extends Controller
 
     public function profile(Request $request)
     {
+        // Get the authenticated student from the JWT token
         try {
             $student = JWTAuth::parseToken()->authenticate();
-
-            if (!$student) {
-                return response()->json(['message' => 'Student not found'], 404);
-            }
+            if (!$student) return response()->json(['message' => 'Student not found'], 404);
 
             $gradeId = $student->grade_id;
-
             $gradeInfo = DB::table('grades')->where('id', $gradeId)->select('name')->first();
             $gradeLabel = $gradeInfo ? $gradeInfo->name : 'N/A';
 
-            $coreSubjects = DB::table('grade_has_subject')
-                ->join('subjects', 'grade_has_subject.subject_id', '=', 'subjects.id')
-                ->where('grade_has_subject.grade_id', $gradeId)
-                ->select('subjects.id', 'subjects.name', 'subjects.subject_code')
-                ->get();
-
-            $bucketSubjects = DB::table('student_has_bucket_subject')
-                ->join('subject_has_bucket_subject', 
-                    'student_has_bucket_subject.subject_has_bucket_subject_id', 
-                    '=', 
-                    'subject_has_bucket_subject.id')
-                ->join('subjects', 'subject_has_bucket_subject.subject_id', '=', 'subjects.id')
-                ->where('student_has_bucket_subject.student_id', $student->id)
-                ->select('subjects.id', 'subjects.name', 'subjects.subject_code')
-                ->get();
+            $coreSubjects = DB::table('grade_has_subject')->join('subjects', 'grade_has_subject.subject_id', '=', 'subjects.id')->where('grade_has_subject.grade_id', $gradeId)->select('subjects.id', 'subjects.name', 'subjects.subject_code')->get();
+            $bucketSubjects = DB::table('student_has_bucket_subject')->join('subject_has_bucket_subject', 'student_has_bucket_subject.subject_has_bucket_subject_id', '=', 'subject_has_bucket_subject.id')->join('subjects', 'subject_has_bucket_subject.subject_id', '=', 'subjects.id')->where('student_has_bucket_subject.student_id', $student->id)->select('subjects.id', 'subjects.name', 'subjects.subject_code')->get();
 
             return response()->json([
                 'name'          => $student->name,
@@ -121,7 +103,6 @@ class StudentController extends Controller
                 'core_subjects' => $coreSubjects,
                 'bucket_subjects' => $bucketSubjects,
             ]);
-
         } catch (\Exception $e) {
             return response()->json(['message' => 'Unauthorized', 'error' => $e->getMessage()], 401);
         }

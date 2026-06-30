@@ -7,18 +7,42 @@ use App\Models\Mark;
 use App\Models\StudentHasMark;
 use App\Models\Student;
 use Illuminate\Support\Facades\DB;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class MarkController extends Controller
 {
     public function saveMarks(Request $request)
     {
-        $marksData = $request->input('marks_data'); 
+        $user = JWTAuth::parseToken()->authenticate();
         
+        $marksData = $request->input('marks_data'); 
         $examYearId = $request->input('exam_year_id'); 
         $termId = $request->input('term_id');
-        $gradeId = $request->input('grade_id'); // දැන් මේක grade_id
+        $gradeId = $request->input('grade_id'); 
         $subjectId = $request->input('subject_id');
         
+        // SECURITY CHECK: 
+        // Even if the user is a 'Class Incharge', they CANNOT save marks for a subject they do not teach!
+        if ($user->getTable() !== 'admins') {
+            $hasAccessToGrade = DB::table('teacher_has_grade')
+                ->where('teacher_id', $user->id)
+                ->where('grade_id', $gradeId)
+                ->exists();
+
+            $hasAccessToSubject = DB::table('teacher_has_subject')
+                ->where('teacher_id', $user->id)
+                ->where('subject_id', $subjectId)
+                ->exists();
+
+            // MUST have access to BOTH the grade AND the specific subject to edit marks
+            if (!$hasAccessToGrade || !$hasAccessToSubject) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Unauthorized! You can only edit marks for subjects you specifically teach.'
+                ], 403);
+            }
+        }
+
         try {
             DB::beginTransaction();
 
@@ -29,29 +53,26 @@ class MarkController extends Controller
 
                 $student = Student::find($data['student_id']);
 
-                // Find if a record already exists using the new grade_id
                 $existingRecord = StudentHasMark::where('student_id', $student->id)
-                    ->where('grade_id', $gradeId) // Updated: grade_id
+                    ->where('grade_id', $gradeId)
                     ->where('subject_id', $subjectId)            
                     ->where('term_id', $termId)                
                     ->where('exam_year_id', $examYearId)                
                     ->first();
 
                 if ($existingRecord) {
-                    // Update existing mark
                     $mark = Mark::find($existingRecord->marks_id);
                     if ($mark) {
                         $mark->update(['mark' => $data['mark']]);
                     }
                 } else {
-                    // Create new mark
                     $markRecord = Mark::create(['mark' => $data['mark']]);
 
                     StudentHasMark::create([
                         'student_id'     => $student->id,
                         'student_reg_no' => $student->reg_no ?? 'N/A',
                         'marks_id'       => $markRecord->id,
-                        'grade_id'       => $gradeId, // Updated: grade_id
+                        'grade_id'       => $gradeId,
                         'subject_id'     => $subjectId,            
                         'term_id'        => $termId,                
                         'exam_year_id'   => $examYearId               

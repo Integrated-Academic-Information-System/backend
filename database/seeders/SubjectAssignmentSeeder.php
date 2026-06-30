@@ -43,6 +43,8 @@ class SubjectAssignmentSeeder extends Seeder
             ['name' => 'Buddhist Civilization', 'code' => 'S024'],
             ['name' => 'General English', 'code' => 'S025'],
             ['name' => 'General Information Technology', 'code' => 'S026'],
+            // New Subject Added for Commerce Stream
+            ['name' => 'Business Statistics', 'code' => 'S027'],
         ];
 
         foreach ($allSubjects as $subject) {
@@ -60,9 +62,12 @@ class SubjectAssignmentSeeder extends Seeder
             ['name' => 'Category 01 (G10-11)', 'code' => 'BK002'],
             ['name' => 'Category 02 (G10-11)', 'code' => 'BK003'],
             ['name' => 'Category 03 (G10-11)', 'code' => 'BK004'],
-            ['name' => 'Category 01 (G12-13)', 'code' => 'BK005'],
-            ['name' => 'Category 02 (G12-13)', 'code' => 'BK006'],
-            ['name' => 'Category 03 (G12-13)', 'code' => 'BK007'],
+            // Arts Stream Buckets
+            ['name' => 'Category 01 (G12-13 Arts)', 'code' => 'BK005'],
+            ['name' => 'Category 02 (G12-13 Arts)', 'code' => 'BK006'],
+            ['name' => 'Category 03 (G12-13 Arts)', 'code' => 'BK007'],
+            // Commerce Stream Bucket
+            ['name' => 'Commerce Core Electives', 'code' => 'BK008'],
         ];
 
         foreach ($buckets as $bucket) {
@@ -80,9 +85,14 @@ class SubjectAssignmentSeeder extends Seeder
             'Category 01 (G10-11)' => ['Citizenship Education (Civics)', 'Business Studies', 'Geography', 'Accounting'],
             'Category 02 (G10-11)' => ['Art', 'Dancing', 'Music'],
             'Category 03 (G10-11)' => ['ICT', 'Home Science', 'Agricultural Science', 'Health and Physical Education'],
-            'Category 01 (G12-13)' => ['English Language', 'Sinhala'],
-            'Category 02 (G12-13)' => ['History', 'Political Science', 'Communication & Media Studies', 'Geography', 'Business Studies', 'Accounting', 'Economics', 'ICT', 'Home Science'],
-            'Category 03 (G12-13)' => ['Buddhist Civilization', 'Art', 'Dancing', 'Music'],
+            
+            // Arts Stream Category Mappings
+            'Category 01 (G12-13 Arts)' => ['English Language', 'Sinhala'],
+            'Category 02 (G12-13 Arts)' => ['History', 'Political Science', 'Communication & Media Studies', 'Geography', 'Business Studies', 'Accounting', 'Economics', 'ICT', 'Home Science'],
+            'Category 03 (G12-13 Arts)' => ['Buddhist Civilization', 'Art', 'Dancing', 'Music'],
+            
+            // Commerce Stream Mappings (Choose 2 from this list)
+            'Commerce Core Electives' => ['Economics', 'Business Studies', 'ICT', 'Business Statistics'],
         ];
 
         foreach ($bucketSubjectMap as $bName => $sNames) {
@@ -103,12 +113,16 @@ class SubjectAssignmentSeeder extends Seeder
         // ─────────────────────────────────────────
         $grade69Core = ['Sinhala', 'Tamil', 'English Language', 'Mathematics', 'Science', 'History', 'Geography', 'Citizenship Education (Civics)', 'Religion', 'ICT', 'PTS', 'Health and Physical Education'];
         $grade1011Core = ['Sinhala', 'English Language', 'Mathematics', 'Science', 'History', 'Religion'];
-        $grade1213Core = ['General English', 'General Information Technology'];
+        
+        // Split A/L Core Subjects based on Stream
+        $grade1213ArtsCore = ['General English', 'General Information Technology'];
+        $grade1213CommerceCore = ['General English', 'General Information Technology', 'Accounting']; // Accounting is mandatory for Commerce
 
         $gradeCoreMap = [
             'Grade 6' => $grade69Core, 'Grade 7' => $grade69Core, 'Grade 8' => $grade69Core, 'Grade 9' => $grade69Core,
             'Grade 10' => $grade1011Core, 'Grade 11' => $grade1011Core,
-            'Grade 12' => $grade1213Core, 'Grade 13' => $grade1213Core,
+            'Grade 12 Arts' => $grade1213ArtsCore, 'Grade 13 Arts' => $grade1213ArtsCore,
+            'Grade 12 Commerce' => $grade1213CommerceCore, 'Grade 13 Commerce' => $grade1213CommerceCore,
         ];
 
         foreach ($gradeCoreMap as $gName => $cSubjects) {
@@ -118,7 +132,7 @@ class SubjectAssignmentSeeder extends Seeder
                     $sId = $subjectId($sName);
                     if ($sId) {
                         DB::table('grade_has_subject')->updateOrInsert([
-                            'grade_id' => $gId, // Updated logic
+                            'grade_id' => $gId, 
                             'subject_id' => $sId,
                         ]);
                     }
