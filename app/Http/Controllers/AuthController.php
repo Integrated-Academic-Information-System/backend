@@ -27,11 +27,20 @@ class AuthController extends Controller
         $outGoingUser = '';
         $teacher_status = 100;
 
-        // 2. Identify user type based on username pattern
-        if (str_contains($lower_username, 'admin')) {
-            $user = Admin::where('user_name', $input_username)->first();
-        } else if (str_contains($lower_username, 'reg')) {
-            $user = Student::where('reg_no', $input_username)->first();
+        if (str_contains(strtolower($requested_user_name), 'admin')) {
+            $user = Admin::where('user_name', $request->user_name)->first();
+            $outGoingUser = $user->user_name;
+        } else if (str_contains(strtolower($requested_user_name), 'reg')) {
+            $user = Student::where('reg_no', $request->user_name)->first();
+            $outGoingUser = $user->reg_no;
+        } else if (str_contains(strtolower($requested_user_name), 'teacher')) {
+            $user = Teacher::where('user_name', $request->user_name)->first();
+            $outGoingUser = $user->user_name;
+            if ($user->role_status === 0) {
+                $teacher_status = 0;
+            } else if ($user->role_status === 1) {
+                $teacher_status = 1;
+            }
         } else {
             // Default check for Teachers (Handles 'ct_' and any other teacher patterns)
             $user = Teacher::where('user_name', $input_username)->first();
@@ -81,9 +90,15 @@ class AuthController extends Controller
     public function logout()
     {
         try {
-            JWTAuth::invalidate(JWTAuth::getToken());
+            $token = JWTAuth::getToken();
+
+            if (!$token) {
+                return response()->json(['message' => 'Token not provided'], 400);
+            }
+
+            JWTAuth::invalidate($token);
         } catch (JWTException $e) {
-            return response()->json(['message' => 'Failed to logout'], 500);
+            return response()->json(['message' => 'Token invalid or already expired'], 401);
         }
 
         return response()->json(['message' => 'Logged out']);
