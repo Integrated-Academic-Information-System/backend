@@ -9,16 +9,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('students', function (Blueprint $table) {
-            // Adds the class ID to the student and links it to the grade_has_sub_grade table
-            $table->foreignId('grade_has_sub_grade_id')->nullable()->constrained('grade_has_sub_grade')->onDelete('set null');
+            // The grade_id is newly added and linked to the grades table.
+            $table->foreignId('grade_id')->nullable()->constrained('grades')->onDelete('set null');
         });
     }
 
     public function down(): void
     {
         Schema::table('students', function (Blueprint $table) {
-            $table->dropForeign(['grade_has_sub_grade_id']);
-            $table->dropColumn('grade_has_sub_grade_id');
+            $table->dropForeign(['grade_id']);
+            $table->dropColumn('grade_id');
         });
     }
 };

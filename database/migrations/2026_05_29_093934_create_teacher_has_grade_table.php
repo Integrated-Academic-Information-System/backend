@@ -7,20 +7,34 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Assign teachers to grades.
+     *
+     * A teacher can teach multiple grades.
      */
-   public function up(): void
+    public function up(): void
     {
         Schema::create('teacher_has_grade', function (Blueprint $table) {
+
             $table->id();
-            $table->foreignId('teacher_id')->constrained('teachers')->onDelete('cascade');
-            $table->foreignId('grade_has_sub_grade_id')->constrained('grade_has_sub_grade')->onDelete('cascade');
+
+            $table->foreignId('teacher_id')
+                ->constrained()
+                ->cascadeOnDelete();
+
+            $table->foreignId('grade_id')
+                ->constrained()
+                ->cascadeOnDelete();
+
             $table->timestamps();
+
+            $table->unique([
+                'teacher_id',
+                'grade_id'
+            ]);
+
         });
     }
-    /**
-     * Reverse the migrations.
-     */
+
     public function down(): void
     {
         Schema::dropIfExists('teacher_has_grade');
