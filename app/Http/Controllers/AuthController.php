@@ -43,8 +43,8 @@ class AuthController extends Controller
             $outGoingUser = $user->user_name;
             if ($user->role_status === 0) {
                 $teacher_status = 0;
-            } else if($user->role_status === 1) {
-               $teacher_status = 1;
+            } else if ($user->role_status === 1) {
+                $teacher_status = 1;
             }
         } else {
             return response()->json([
@@ -80,12 +80,17 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         try {
-            JWTAuth::invalidate(JWTAuth::getToken());
+            $token = JWTAuth::getToken();
+
+            if (!$token) {
+                return response()->json(['message' => 'Token not provided'], 400);
+            }
+
+            JWTAuth::invalidate($token);
         } catch (JWTException $e) {
-            return response()->json(['message' => 'Failed to logout'], 500);
+            return response()->json(['message' => 'Token invalid or already expired'], 401);
         }
 
         return response()->json(['message' => 'Logged out']);
     }
-
 }
