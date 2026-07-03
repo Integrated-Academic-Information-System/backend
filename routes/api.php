@@ -32,12 +32,19 @@ Route::get('/form-data', [FormDataController::class, 'getDropdownData']);
 
 Route::middleware('auth:student')->group(function () {
     Route::get('/student/profile', [StudentController::class, 'profile']);
+    Route::post('/student/logout', [AuthController::class, 'logout']);
 });
 
-Route::middleware('auth:api')->group(function () {
-    // Logout
-    Route::post('/logout', [AuthController::class, 'logout']);
+
+// Logout
+Route::middleware('auth:admin')->group(function () {
+    Route::post('/admin/logout', [AuthController::class, 'logout']);
 });
+
+Route::middleware('auth:teacher')->group(function () {
+    Route::post('/teacher/logout', [AuthController::class, 'logout']);
+});
+
 
 
     /*
