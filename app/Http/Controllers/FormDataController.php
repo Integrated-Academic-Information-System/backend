@@ -12,40 +12,48 @@ class FormDataController extends Controller
         $role = $request->query('role'); 
         $teacherId = $request->query('teacher_id'); 
 
+        // 1. SECURITY CHECK: If the user is not an admin, they must provide a teacher_id
+        if ($role !== 'admin' && empty($teacherId)) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Teacher ID is missing from Frontend!'
+            ], 400);
+        }
+
         $terms = DB::table('terms')->select('id', 'name')->get();
         $years = DB::table('exam_years')->select('id', 'year as name')->get();
         
         $subjectsQuery = DB::table('subjects');
-        $classesQuery = DB::table('grade_has_sub_grade')
-            ->join('grades', 'grade_has_sub_grade.grade_id', '=', 'grades.id')
-            ->join('sub_grades', 'grade_has_sub_grade.sub_grade_id', '=', 'sub_grades.id')
-            ->select(
-                'grade_has_sub_grade.id', 
-                DB::raw("CONCAT(grades.name, ' - ', sub_grades.name) as name"),
-                'grades.name as base_grade'
-            );
+        $classesQuery = DB::table('grades')->select('id', 'name');
+        
+        $editableSubjectIds = []; // the subjects that the teacher can edit (for frontend to know)
 
-        // Filter based on role
-        if ($role === 'subject_teacher' && $teacherId) {
-            // Subject teacher sees only assigned subjects and assigned classes
-            $allowedSubjectIds = DB::table('teacher_has_subject')->where('teacher_id', $teacherId)->pluck('subject_id');
-            $allowedClassIds = DB::table('teacher_has_grade')->where('teacher_id', $teacherId)->pluck('grade_has_sub_grade_id');
+        if ($role !== 'admin') {
             
-            $subjectsQuery->whereIn('id', $allowedSubjectIds);
-            $classesQuery->whereIn('grade_has_sub_grade.id', $allowedClassIds);
-        } else if ($role === 'class_incharge' && $teacherId) {
-            // Class incharge sees ALL subjects, but ONLY their assigned class
-            $allowedClassIds = DB::table('teacher_has_grade')->where('teacher_id', $teacherId)->pluck('grade_has_sub_grade_id');
-            $classesQuery->whereIn('grade_has_sub_grade.id', $allowedClassIds);
-        }
+            // 1. get the grades that the teacher is allowed to see (Class Incharge or Subject Teacher)
+            $allowedGradeIds = DB::table('teacher_has_grade')->where('teacher_id', $teacherId)->pluck('grade_id');
+            $classesQuery->whereIn('id', $allowedGradeIds);
+            
+            // 2. get the subjects that the teacher is allowed to see (Subject Teacher or Class Incharge)
+            $editableSubjectIds = DB::table('teacher_has_subject')->where('teacher_id', $teacherId)->pluck('subject_id');
+
+            // 3. Apply the security bounds to the subjects query
+            if ($role === 'subject_teacher') {
+                // Subject Teachers can only see the subjects they teach
+                $subjectsQuery->whereIn('id', $editableSubjectIds);
+            } 
+            // Class Incharges can see all subjects for the grades they are in charge of, so no additional filtering needed for them.
+            // But we still need to ensure that the subjects belong to the grades they are in charge of.
+        } 
 
         return response()->json([
             'success' => true,
             'data' => [
                 'terms' => $terms,
-                'grades' => $classesQuery->get(),
+                'grades' => $classesQuery->orderBy('id')->get(),
                 'subjects' => $subjectsQuery->orderBy('name')->get(),
-                'exam_years' => $years
+                'exam_years' => $years,
+                'editable_subject_ids' => $editableSubjectIds // for frontend to know which subjects the teacher can edit
             ]
         ], 200);
     }

@@ -14,22 +14,17 @@ class AuthController extends Controller
 {
     public function login(Request $request)
     {
+        // 1. Validate incoming request
         $request->validate([
             'user_name' => 'required|string',
             'password'  => 'required|string',
         ]);
 
-        $requested_user_name = $request->user_name;
-        // Find user by username
-
-        // if (str_contains(strtolower($requested_user_name), strtolower("admin"))) {
-        //     $user = Admin::where('user_name', $request->user_name)->first();
-        // }else{
-        //     return response()->json([
-        //         'message' => 'Can not login! Try again.'
-        //     ], 401);
-        // }
-
+        $input_username = $request->user_name; // Keep original input for database query
+        $lower_username = strtolower($input_username); // Lowercase for pattern matching
+        
+        $user = null;
+        $outGoingUser = '';
         $teacher_status = 100;
 
         if (str_contains(strtolower($requested_user_name), 'admin')) {
@@ -47,37 +42,52 @@ class AuthController extends Controller
                 $teacher_status = 1;
             }
         } else {
-            return response()->json([
-                'message' => 'Can not login! Try again.'
-            ], 401);
+            // Default check for Teachers (Handles 'ct_' and any other teacher patterns)
+            $user = Teacher::where('user_name', $input_username)->first();
         }
 
-        // Check if user exists and password matches
+        // 3. Verify user existence and password
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'message' => 'Invalid username or password'
             ], 401);
         }
 
-        // Generate JWT token directly from the user object
+        // 4. Set response details based on user type
+        if ($user instanceof Admin) {
+            $outGoingUser = $user->user_name;
+        } else if ($user instanceof Student) {
+            $outGoingUser = $user->reg_no;
+        } else if ($user instanceof Teacher) {
+            $outGoingUser = $user->user_name;
+            $teacher_status = $user->role_status;
+        }
+
+        // 5. Generate JWT token
         try {
             $token = JWTAuth::fromUser($user);
         } catch (JWTException $e) {
-            return response()->json([
-                'message' => 'Could not create token'
-            ], 500);
+            return response()->json(['message' => 'Could not create token'], 500);
         }
 
-        return response()->json([
-            'token'      => $token,
-            'token_type' => 'bearer',
-            'expires_in' => config('jwt.ttl') * 60 * 6, // seconds
-            'user_name'  => $outGoingUser,
-            'teacher_status' => $teacher_status,
-        ]);
+        // 6. Prepare and send response
+        $responseData = [
+            'token'          => $token,
+            'token_type'     => 'bearer',
+            'expires_in'     => config('jwt.ttl') * 60 * 6,
+            'user_name'      => $outGoingUser,
+            'teacher_status' => $teacher_status, // 0 = Subject, 1 = Class Incharge
+        ];
+
+        // Include teacher_id for teachers to facilitate filtering
+        if ($user instanceof Teacher) {
+            $responseData['teacher_id'] = $user->id;
+        }
+
+        return response()->json($responseData);
     }
 
-    public function logout(Request $request)
+    public function logout()
     {
         try {
             $token = JWTAuth::getToken();
