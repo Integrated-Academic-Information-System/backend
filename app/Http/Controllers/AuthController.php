@@ -27,15 +27,12 @@ class AuthController extends Controller
         $outGoingUser = '';
         $teacher_status = 100;
 
-        if (str_contains(strtolower($requested_user_name), 'admin')) {
-            $user = Admin::where('user_name', $request->user_name)->first();
-            $outGoingUser = $user->user_name;
-        } else if (str_contains(strtolower($requested_user_name), 'reg')) {
+        if (str_contains($lower_username, 'admin')) {
+            $user = Admin::where('user_name', $input_username)->first();
+        } elseif (str_contains($lower_username, 'reg') ){
             $user = Student::where('reg_no', $request->user_name)->first();
-            $outGoingUser = $user->reg_no;
-        } else if (str_contains(strtolower($requested_user_name), 'teacher')) {
+        } else if (str_contains($lower_username, 'teacher')) {
             $user = Teacher::where('user_name', $request->user_name)->first();
-            $outGoingUser = $user->user_name;
             if ($user->role_status === 0) {
                 $teacher_status = 0;
             } else if($user->role_status === 1) {
