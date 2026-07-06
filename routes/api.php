@@ -9,6 +9,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MarkController;
 use App\Http\Controllers\FormDataController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\TeacherController;
 /*
     Public Routes
     */
@@ -46,14 +47,6 @@ Route::middleware('auth:admin')->group(function () {
 
 Route::middleware('auth:teacher')->group(function () {
     Route::post('/teacher/logout', [AuthController::class, 'logout']);
+    Route::get('/teacher/profile', [TeacherController::class, 'profile']);       
+    Route::put('/teacher/profile/update', [TeacherController::class, 'updateProfile']); 
 });
-
-
-
-    /*
-    Default Authenticated User Route (Optional)
-    */
-
-    // Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    //     return $request->user();
-    // });
