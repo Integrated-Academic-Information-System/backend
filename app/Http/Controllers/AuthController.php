@@ -22,21 +22,21 @@ class AuthController extends Controller
 
         $input_username = $request->user_name; // Keep original input for database query
         $lower_username = strtolower($input_username); // Lowercase for pattern matching
-        
+
         $user = null;
         $outGoingUser = '';
         $teacher_status = 100;
 
         if (str_contains($lower_username, 'admin')) {
             $user = Admin::where('user_name', $input_username)->first();
-        } elseif (str_contains($lower_username, 'reg') ){
+        } elseif (str_contains($lower_username, 'reg')) {
             $user = Student::where('reg_no', $request->user_name)->first();
         } else if (str_contains($lower_username, 'teacher')) {
             $user = Teacher::where('user_name', $request->user_name)->first();
             if ($user->role_status === 0) {
                 $teacher_status = 0;
-            } else if($user->role_status === 1) {
-               $teacher_status = 1;
+            } else if ($user->role_status === 1) {
+                $teacher_status = 1;
             }
         } else {
             // Default check for Teachers (Handles 'ct_' and any other teacher patterns)
@@ -79,6 +79,9 @@ class AuthController extends Controller
         // Include teacher_id for teachers to facilitate filtering
         if ($user instanceof Teacher) {
             $responseData['teacher_id'] = $user->id;
+            $responseData['name']           = $user->name;
+            $responseData['email']          = $user->email;
+            $responseData['mobile_number']  = $user->mobile_number;
         }
 
         return response()->json($responseData);
@@ -94,5 +97,4 @@ class AuthController extends Controller
 
         return response()->json(['message' => 'Logged out']);
     }
-
 }
