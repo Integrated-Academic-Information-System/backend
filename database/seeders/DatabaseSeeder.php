@@ -1,5 +1,5 @@
 <?php
-
+//DatabaseSeeder.php
 namespace Database\Seeders;
 
 use App\Models\Admin;
