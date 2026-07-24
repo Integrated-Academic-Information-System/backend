@@ -10,6 +10,7 @@ use App\Http\Controllers\MarkController;
 use App\Http\Controllers\FormDataController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TeacherController;
+use App\Http\Controllers\StudentDashboardController;
 /*
     Public Routes
     */
@@ -37,6 +38,7 @@ Route::get('/generate-report', [ReportController::class, 'generateReport']);
 Route::middleware('auth:student')->group(function () {
     Route::get('/student/profile', [StudentController::class, 'profile']);
     Route::post('/student/logout', [AuthController::class, 'logout']);
+    Route::get('/student/dashboard', [StudentDashboardController::class, 'dashboard']);
 });
 
 
