@@ -133,7 +133,11 @@ class AdminUserController extends Controller
 
     private function validateStudent(Request $request, ?Student $student = null): array
     {
-        $data = $request->validate(['name' => ['required', 'string', 'max:60'], 'reg_no' => ['required', 'string', 'max:15', Rule::unique('students', 'reg_no')->ignore($student)], 'password' => [$student ? 'nullable' : 'required', 'string', 'min:8'], 'grade_id' => ['required', 'exists:grades,id'], 'subject_ids' => ['nullable', 'array'], 'subject_ids.*' => ['integer', 'exists:subjects,id'], 'address' => ['nullable', 'string', 'max:45'], 'dob' => ['nullable', 'date'], 'reg_date' => ['nullable', 'date'], 'mobile_number' => ['nullable', 'string', 'max:11'], 'email' => ['nullable', 'email', 'max:45', Rule::unique('students', 'email')->ignore($student)]]);
+        $emailRule = $student
+            ? 'nullable|email|unique:students,email,' . $student->id
+            : 'nullable|email|unique:students,email';
+
+        $data = $request->validate(['name' => ['required', 'string', 'max:60'], 'reg_no' => ['required', 'string', 'max:15', Rule::unique('students', 'reg_no')->ignore($student)], 'password' => [$student ? 'nullable' : 'required', 'string', 'min:8'], 'grade_id' => ['required', 'exists:grades,id'], 'subject_ids' => ['nullable', 'array'], 'subject_ids.*' => ['integer', 'exists:subjects,id'], 'address' => ['nullable', 'string', 'max:45'], 'dob' => ['nullable', 'date'], 'reg_date' => ['nullable', 'date'], 'mobile_number' => ['nullable', 'string', 'max:11'], 'email' => $emailRule]);
         $available = collect($this->gradeSubjectsData((int) $data['grade_id']))->pluck('id')->map(fn ($id) => (int) $id);
         if (collect($data['subject_ids'] ?? [])->diff($available)->isNotEmpty()) abort(response()->json(['message' => 'Selected subjects must be available for the selected class.'], 422));
         return $data;
