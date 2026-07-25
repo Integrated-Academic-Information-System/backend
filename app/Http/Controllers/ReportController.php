@@ -63,11 +63,13 @@ class ReportController extends Controller
         $zip->addFromString('xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>');
         $allRows = collect([$headings])->concat($rows);
         $cells = $allRows->values()->map(function ($row, $rowIndex) {
-            $columns = collect($row)->values()->map(function ($value, $columnIndex) {
-                $reference = chr(65 + $columnIndex) . ($rowIndex + 1);
+            $sheetRowNumber = $rowIndex + 1;
+
+            $columns = collect($row)->values()->map(function ($value, $columnIndex) use ($sheetRowNumber) {
+                $reference = chr(65 + $columnIndex) . $sheetRowNumber;
                 return '<c r="' . $reference . '" t="inlineStr"><is><t>' . htmlspecialchars((string) $value, ENT_XML1 | ENT_QUOTES, 'UTF-8') . '</t></is></c>';
             })->implode('');
-            return '<row r="' . ($rowIndex + 1) . '">' . $columns . '</row>';
+            return '<row r="' . $sheetRowNumber . '">' . $columns . '</row>';
         })->implode('');
         $zip->addFromString('xl/worksheets/sheet1.xml', '<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' . $cells . '</sheetData></worksheet>');
         $zip->close();

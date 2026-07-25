@@ -48,6 +48,7 @@ Route::middleware('auth:student')->group(function () {
 Route::middleware('auth:admin')->group(function () {
     Route::post('/admin/logout', [AuthController::class, 'logout']);
     Route::get('/admin/users', [AdminUserController::class, 'index']);
+    Route::get('/admin/grades', [AdminUserController::class, 'grades']);
     Route::get('/admin/user-management/form-data', [AdminUserController::class, 'formData']);
     Route::get('/admin/grades/{grade}/subjects', [AdminUserController::class, 'gradeSubjects']);
     Route::post('/admin/students', [AdminUserController::class, 'storeStudent']);

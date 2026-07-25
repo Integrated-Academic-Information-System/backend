@@ -11,6 +11,11 @@ use Illuminate\Validation\Rule;
 
 class AdminUserController extends Controller
 {
+    public function grades()
+    {
+        return response()->json(['success' => true, 'data' => DB::table('grades')->select('id', 'name')->orderBy('name')->get()]);
+    }
+
     public function index(Request $request)
     {
         $type = $request->query('type');
@@ -145,7 +150,20 @@ class AdminUserController extends Controller
 
     private function validateTeacher(Request $request, ?Teacher $teacher = null): array
     {
-        $data = $request->validate(['name' => ['required', 'string', 'max:60'], 'user_name' => ['required', 'string', Rule::unique('teachers', 'user_name')->ignore($teacher)], 'password' => [$teacher ? 'nullable' : 'required', 'string', 'min:8'], 'is_class_teacher' => ['required', 'boolean'], 'is_subject_teacher' => ['required', 'boolean'], 'class_teacher_grade_id' => ['nullable', 'exists:grades,id'], 'subject_assignments' => ['nullable', 'array'], 'subject_assignments.*.subject_id' => ['required_with:subject_assignments', 'exists:subjects,id'], 'subject_assignments.*.grade_ids' => ['required_with:subject_assignments', 'array', 'min:1'], 'subject_assignments.*.grade_ids.*' => ['exists:grades,id'], 'email' => ['nullable', 'email', Rule::unique('teachers', 'email')->ignore($teacher)], 'mobile_number' => ['nullable', 'string', 'max:12']]);
+        $payload = $request->all();
+
+        if (($payload['is_subject_teacher'] ?? false) && empty($payload['subject_assignments']) && !empty($payload['subject_teacher_subject_id']) && !empty($payload['subject_teacher_class_ids'])) {
+            $payload['subject_assignments'] = [[
+                'subject_id' => $payload['subject_teacher_subject_id'],
+                'grade_ids' => $payload['subject_teacher_class_ids'],
+            ]];
+        }
+
+        $emailRule = $teacher
+            ? 'required|email|unique:teachers,email,' . $teacher->id
+            : 'required|email|unique:teachers,email';
+
+        $data = validator($payload, ['name' => ['required', 'string', 'max:60'], 'user_name' => ['required', 'string', Rule::unique('teachers', 'user_name')->ignore($teacher)], 'password' => [$teacher ? 'nullable' : 'required', 'string', 'min:8'], 'is_class_teacher' => ['required', 'boolean'], 'is_subject_teacher' => ['required', 'boolean'], 'class_teacher_grade_id' => ['nullable', 'exists:grades,id'], 'subject_assignments' => ['nullable', 'array'], 'subject_assignments.*.subject_id' => ['required_with:subject_assignments', 'exists:subjects,id'], 'subject_assignments.*.grade_ids' => ['required_with:subject_assignments', 'array', 'min:1'], 'subject_assignments.*.grade_ids.*' => ['exists:grades,id'], 'email' => $emailRule, 'mobile_number' => ['nullable', 'string', 'max:12']])->validate();
         if (!$data['is_class_teacher'] && !$data['is_subject_teacher']) abort(response()->json(['message' => 'At least one teacher type must be selected.'], 422));
         if ($data['is_class_teacher'] && empty($data['class_teacher_grade_id'])) abort(response()->json(['message' => 'A class teacher must be assigned one class.'], 422));
         if ($data['is_subject_teacher'] && empty($data['subject_assignments'])) abort(response()->json(['message' => 'A subject teacher requires at least one subject and class assignment.'], 422));
