@@ -1,22 +1,24 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\StudentController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\StudentController;
+use Illuminate\Support\Facades\Route;
 
-// Route::get('/user', function (Request $request) {
-//     return $request->user();
-// })->middleware('auth:sanctum');
+// ─── Public Routes ────────────────────────────────────────────────────────────
 
-
-// A GET request/when come to students route, run getStudents function in StudentController to fetch all students from the database and return as JSON response to the frontend 
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/students', [StudentController::class, 'getStudents']);
 
-Route::middleware('auth:api')->group(function () {
-    
-    Route::post('/logout',  [AuthController::class, 'logout']);
+// ─── Authenticated Routes (JWT) ───────────────────────────────────────────────
 
-    // your protected routes here...
+Route::middleware('auth:api')->group(function () {
+
+    Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Student routes
+    Route::prefix('student')->group(function () {
+        Route::get('/profile',        [StudentController::class, 'profile']);
+        Route::get('/dashboard',      [StudentController::class, 'dashboard']);
+        Route::get('/latest-results', [StudentController::class, 'latestResults']);
+    });
 });
