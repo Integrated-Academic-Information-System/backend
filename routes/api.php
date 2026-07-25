@@ -37,6 +37,7 @@ Route::get('/generate-report', [ReportController::class, 'generateReport']);
 
 Route::middleware('auth:student')->group(function () {
     Route::get('/student/profile', [StudentController::class, 'profile']);
+    Route::get('/student/dashboard', [StudentController::class, 'dashboard']);
     Route::post('/student/logout', [AuthController::class, 'logout']);
     Route::get('/student/dashboard', [StudentDashboardController::class, 'dashboard']);
 });

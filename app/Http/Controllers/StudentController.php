@@ -107,4 +107,83 @@ class StudentController extends Controller
             return response()->json(['message' => 'Unauthorized', 'error' => $e->getMessage()], 401);
         }
     }
+
+
+    public function dashboard(Request $request)
+    {
+        try {
+            $student = JWTAuth::parseToken()->authenticate();
+            if (!$student) return response()->json(['message' => 'Student not found'], 404);
+
+            // 1. Find the current term
+            $currentTerm = DB::table('terms')->where('is_current', true)->first();
+            if (!$currentTerm) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No active term found.'
+                ], 404);
+            }
+
+            // 2. Academic Standing % — this student's average mark in the current term
+            $studentAvg = DB::table('student_has_marks')
+                ->join('marks', 'student_has_marks.marks_id', '=', 'marks.id')
+                ->where('student_has_marks.student_id', $student->id)
+                ->where('student_has_marks.term_id', $currentTerm->id)
+                ->avg('marks.mark');
+
+            $academicStanding = $studentAvg !== null ? round($studentAvg, 1) : 0;
+
+            // 3. Class Rank — rank this student against everyone in the same grade
+            $classAverages = DB::table('student_has_marks')
+                ->join('marks', 'student_has_marks.marks_id', '=', 'marks.id')
+                ->where('student_has_marks.grade_id', $student->grade_id)
+                ->where('student_has_marks.term_id', $currentTerm->id)
+                ->select('student_has_marks.student_id', DB::raw('AVG(marks.mark) as avg_mark'))
+                ->groupBy('student_has_marks.student_id')
+                ->orderByDesc('avg_mark')
+                ->get();
+
+            $rankIndex = $classAverages->search(fn($row) => $row->student_id === $student->id);
+            $classRank = $rankIndex !== false ? $rankIndex + 1 : null;
+            $totalStudents = $classAverages->count();
+
+            $standingLabel = null;
+            if ($classRank !== null && $totalStudents > 0) {
+                $percentile = round(($classRank / $totalStudents) * 100);
+                $standingLabel = "Top {$percentile}% of your class";
+            }
+
+            // 4. Recent Performance — latest 3 marks entered, any subject
+            $recentMarks = DB::table('student_has_marks')
+                ->join('marks', 'student_has_marks.marks_id', '=', 'marks.id')
+                ->join('subjects', 'student_has_marks.subject_id', '=', 'subjects.id')
+                ->where('student_has_marks.student_id', $student->id)
+                ->orderByDesc('student_has_marks.created_at')
+                ->select(
+                    'subjects.name as subject',
+                    'subjects.subject_code as subject_code',
+                    'marks.mark as score'
+                )
+                ->limit(3)
+                ->get();
+
+            // 5. Notifications — latest 5 for this student
+            $notifications = DB::table('notifications')
+                ->where('student_id', $student->id)
+                ->orderByDesc('created_at')
+                ->limit(5)
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'academic_standing' => $academicStanding,
+                'class_rank' => $classRank ? '#' . str_pad($classRank, 2, '0', STR_PAD_LEFT) : null,
+                'standing_label' => $standingLabel,
+                'recent_performance' => $recentMarks,
+                'notifications' => $notifications,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Unauthorized', 'error' => $e->getMessage()], 401);
+        }
+    }
 }
