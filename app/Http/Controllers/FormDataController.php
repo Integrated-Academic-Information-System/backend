@@ -31,11 +31,14 @@ class FormDataController extends Controller
         if ($role !== 'admin') {
             
             // 1. get the grades that the teacher is allowed to see (Class Incharge or Subject Teacher)
-            $allowedGradeIds = DB::table('teacher_has_grade')->where('teacher_id', $teacherId)->pluck('grade_id');
+            $classTeacherGradeIds = DB::table('teacher_has_grade')->where('teacher_id', $teacherId)->pluck('grade_id');
+            $subjectTeacherGradeIds = DB::table('teacher_subject_grade')->where('teacher_id', $teacherId)->pluck('grade_id');
+            $allowedGradeIds = $classTeacherGradeIds->merge($subjectTeacherGradeIds)->unique();
             $classesQuery->whereIn('id', $allowedGradeIds);
             
             // 2. get the subjects that the teacher is allowed to see (Subject Teacher or Class Incharge)
-            $editableSubjectIds = DB::table('teacher_has_subject')->where('teacher_id', $teacherId)->pluck('subject_id');
+            $editableSubjectIds = DB::table('teacher_subject_grade')->where('teacher_id', $teacherId)->pluck('subject_id');
+            if ($editableSubjectIds->isEmpty()) $editableSubjectIds = DB::table('teacher_has_subject')->where('teacher_id', $teacherId)->pluck('subject_id');
 
             // 3. Apply the security bounds to the subjects query
             if ($role === 'subject_teacher') {

@@ -29,27 +29,48 @@ class ReportController extends Controller
             ->where('students.grade_id', $gradeId)
             ->get();
 
-        // make CSV file
-        $fileName = 'Class_Report_' . date('Y-m-d') . '.csv';
-        
-        $headers = [
-            "Content-type" => "text/csv",
-            "Content-Disposition" => "attachment; filename=$fileName",
-            "Pragma" => "no-cache",
-            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
-            "Expires" => "0"
-        ];
+        if ($request->query('format') !== 'xlsx') {
+            $fileName = 'Class_Report_' . date('Y-m-d') . '.csv';
+            return response()->stream(function () use ($students) {
+                $file = fopen('php://output', 'w');
+                fputcsv($file, ['Index No', 'Name', 'Mark']);
+                foreach ($students as $student) fputcsv($file, [$student->reg_no, $student->name, $student->mark ?? '-']);
+                fclose($file);
+            }, 200, ['Content-Type' => 'text/csv', 'Content-Disposition' => "attachment; filename={$fileName}"]);
+        }
 
-        $callback = function() use ($students) {
-            $file = fopen('php://output', 'w');
-            fputcsv($file, ['Index No', 'Name', 'Mark']); // Header 
+        $context = DB::table('grades')->where('id', $gradeId)->value('name');
+        $subject = DB::table('subjects')->where('id', $subjectId)->value('name');
+        $exam = DB::table('exam_years')->where('id', $examYearId)->value('year');
+        $rows = $students->map(fn ($student) => [$student->name, $student->reg_no, $context, $subject, $exam, $student->mark ?? '', $this->grade($student->mark), $student->mark === null ? '' : $student->mark]);
+        return $this->xlsxDownload('Class_Report_' . now()->format('Y-m-d') . '.xlsx', ['Student Name', 'Admission Number', 'Class', 'Subject', 'Exam', 'Marks', 'Grade', 'Average'], $rows);
+    }
 
-            foreach ($students as $student) {
-                fputcsv($file, [$student->reg_no, $student->name, $student->mark ?? '-']);
-            }
-            fclose($file);
-        };
+    private function grade($mark): string
+    {
+        if ($mark === null) return '';
+        return match (true) { $mark >= 75 => 'A', $mark >= 65 => 'B', $mark >= 50 => 'C', $mark >= 35 => 'S', default => 'F' };
+    }
 
-        return response()->stream($callback, 200, $headers);
+    private function xlsxDownload(string $fileName, array $headings, $rows)
+    {
+        $file = tempnam(sys_get_temp_dir(), 'iais-report-');
+        $zip = new \ZipArchive();
+        $zip->open($file, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $zip->addFromString('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>');
+        $zip->addFromString('_rels/.rels', '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
+        $zip->addFromString('xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Marks" sheetId="1" r:id="rId1"/></sheets></workbook>');
+        $zip->addFromString('xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>');
+        $allRows = collect([$headings])->concat($rows);
+        $cells = $allRows->values()->map(function ($row, $rowIndex) {
+            $columns = collect($row)->values()->map(function ($value, $columnIndex) {
+                $reference = chr(65 + $columnIndex) . ($rowIndex + 1);
+                return '<c r="' . $reference . '" t="inlineStr"><is><t>' . htmlspecialchars((string) $value, ENT_XML1 | ENT_QUOTES, 'UTF-8') . '</t></is></c>';
+            })->implode('');
+            return '<row r="' . ($rowIndex + 1) . '">' . $columns . '</row>';
+        })->implode('');
+        $zip->addFromString('xl/worksheets/sheet1.xml', '<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' . $cells . '</sheetData></worksheet>');
+        $zip->close();
+        return response()->download($file, $fileName, ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])->deleteFileAfterSend(true);
     }
 }

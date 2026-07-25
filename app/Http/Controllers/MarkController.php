@@ -26,27 +26,40 @@ class MarkController extends Controller
             ], 401);
         }
         
-        $marksData = $request->input('marks_data'); 
+        $validated = $request->validate([
+            'marks_data' => ['required', 'array'],
+            'marks_data.*.student_id' => ['required', 'integer', 'exists:students,id'],
+            'marks_data.*.mark' => ['nullable', 'numeric', 'between:0,100'],
+            'exam_year_id' => ['required', 'exists:exam_years,id'],
+            'term_id' => ['required', 'exists:terms,id'],
+            'grade_id' => ['required', 'exists:grades,id'],
+            'subject_id' => ['required', 'exists:subjects,id'],
+        ]);
+        $marksData = $validated['marks_data'];
         $examYearId = $request->input('exam_year_id'); 
         $termId = $request->input('term_id');
         $gradeId = $request->input('grade_id'); 
         $subjectId = $request->input('subject_id');
         
-        // SECURITY CHECK: 
-        // Even if the user is a 'Class Incharge', they CANNOT save marks for a subject they do not teach!
+        // Class teachers may enter every subject for their assigned class. Subject
+        // teachers may only enter the exact subject/class combinations assigned to them.
         if ($user->getTable() !== 'admins') {
-            $hasAccessToGrade = DB::table('teacher_has_grade')
+            $isClassTeacher = (bool) ($user->is_class_teacher ?? $user->role_status === 1);
+            $isSubjectTeacher = (bool) ($user->is_subject_teacher ?? $user->role_status === 0);
+            $hasClassAccess = $isClassTeacher && DB::table('teacher_has_grade')
                 ->where('teacher_id', $user->id)
                 ->where('grade_id', $gradeId)
                 ->exists();
-
-            $hasAccessToSubject = DB::table('teacher_has_subject')
+            $hasSubjectAccess = $isSubjectTeacher && DB::table('teacher_subject_grade')
                 ->where('teacher_id', $user->id)
                 ->where('subject_id', $subjectId)
+                ->where('grade_id', $gradeId)
                 ->exists();
-
-            // MUST have access to BOTH the grade AND the specific subject to edit marks
-            if (!$hasAccessToGrade || !$hasAccessToSubject) {
+            // Legacy teacher assignments did not record subject-to-class pairs.
+            $hasLegacySubjectAccess = $isSubjectTeacher && !DB::table('teacher_subject_grade')->where('teacher_id', $user->id)->exists()
+                && DB::table('teacher_has_grade')->where('teacher_id', $user->id)->where('grade_id', $gradeId)->exists()
+                && DB::table('teacher_has_subject')->where('teacher_id', $user->id)->where('subject_id', $subjectId)->exists();
+            if (!$hasClassAccess && !$hasSubjectAccess && !$hasLegacySubjectAccess) {
                 return response()->json([
                     'success' => false, 
                     'message' => 'Unauthorized! You can only edit marks for subjects you specifically teach.'
@@ -64,9 +77,7 @@ class MarkController extends Controller
                 }
 
                 $student = Student::find($data['student_id']);
-                if (!$student) {
-                    continue;
-                }
+                if (!$student || (int) $student->grade_id !== (int) $gradeId) continue;
 
                 $existingRecord = StudentHasMark::where('student_id', $student->id)
                     ->where('grade_id', $gradeId)
@@ -81,7 +92,9 @@ class MarkController extends Controller
                         $mark->update(['mark' => $data['mark']]);
                     }
                 } else {
-                    $markRecord = Mark::create(['mark' => $data['mark']]);
+                    // marks.student_id and marks.subject_id are required by the current schema.
+                    // Omitting them was the reason inserts rolled back and Save appeared to fail.
+                    $markRecord = Mark::create(['mark' => $data['mark'], 'student_id' => $student->id, 'subject_id' => $subjectId]);
 
                     StudentHasMark::create([
                         'student_id'     => $student->id,

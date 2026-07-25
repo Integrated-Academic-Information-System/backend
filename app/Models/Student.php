@@ -32,6 +32,11 @@ class Student extends Authenticatable implements JWTSubject
         return $this->belongsTo(Grade::class, 'grade_has_sub_grade_id', 'id');
     }
 
+    public function subjects()
+    {
+        return $this->belongsToMany(Subject::class, 'student_has_subject')->withTimestamps();
+    }
+
     // Required for JWT if students can also login
     public function getJWTIdentifier()
     {

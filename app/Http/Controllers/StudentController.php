@@ -42,13 +42,15 @@ class StudentController extends Controller
 
         // 3. APPLY SECURITY BOUNDS
         if ($role !== 'admin' && $teacherId) {
-            $allowedClasses = DB::table('teacher_has_grade')->where('teacher_id', $teacherId)->pluck('grade_id')->toArray();
+            $allowedClasses = DB::table('teacher_has_grade')->where('teacher_id', $teacherId)->pluck('grade_id')
+                ->merge(DB::table('teacher_subject_grade')->where('teacher_id', $teacherId)->pluck('grade_id'))->unique()->toArray();
             $query->whereIn('students.grade_id', $allowedClasses);
 
             // ONLY Subject Teachers get blocked from viewing other subjects. 
             // Class Incharges CAN view other subjects for Reports.
             if ($role === 'subject_teacher') {
-                $allowedSubjects = DB::table('teacher_has_subject')->where('teacher_id', $teacherId)->pluck('subject_id')->toArray();
+                $allowedSubjects = DB::table('teacher_subject_grade')->where('teacher_id', $teacherId)->pluck('subject_id')->toArray();
+                if (!$allowedSubjects) $allowedSubjects = DB::table('teacher_has_subject')->where('teacher_id', $teacherId)->pluck('subject_id')->toArray();
                 if ($subjectId && !in_array($subjectId, $allowedSubjects)) {
                     $subjectId = $allowedSubjects[0] ?? null; 
                 }
