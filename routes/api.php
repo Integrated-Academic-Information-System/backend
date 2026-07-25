@@ -69,4 +69,5 @@ Route::middleware('auth:teacher')->group(function () {
     Route::get('/teacher/profile', [TeacherController::class, 'profile']);       
     Route::put('/teacher/profile/update', [TeacherController::class, 'updateProfile']); 
     Route::get('/teacher/class/students', [ClassTeacherController::class, 'students']);
+    Route::get('/teacher/class/overview', [ClassTeacherController::class, 'classInfo']);
 });
