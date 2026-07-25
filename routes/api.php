@@ -12,6 +12,8 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\StudentDashboardController;
 use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\ClassTeacherController;
+
 /*
     Public Routes
     */
@@ -66,4 +68,5 @@ Route::middleware('auth:teacher')->group(function () {
     Route::post('/teacher/logout', [AuthController::class, 'logout']);
     Route::get('/teacher/profile', [TeacherController::class, 'profile']);       
     Route::put('/teacher/profile/update', [TeacherController::class, 'updateProfile']); 
+    Route::get('/teacher/class/students', [ClassTeacherController::class, 'students']);
 });
