@@ -72,6 +72,7 @@ class AdminUserController extends Controller
         return DB::transaction(function () use ($data) {
             $student = Student::create($this->studentAttributes($data));
             $student->subjects()->sync($data['subject_ids'] ?? []);
+            $this->syncStudentBucketSubjects($student->id, (int) $data['grade_id'], $data['subject_ids'] ?? []);
             return response()->json(['success' => true, 'message' => 'Student created.', 'data' => $this->studentDetails($student->fresh())], 201);
         });
     }
@@ -87,6 +88,7 @@ class AdminUserController extends Controller
         return DB::transaction(function () use ($student, $data) {
             $student->update($this->studentAttributes($data, false));
             $student->subjects()->sync($data['subject_ids'] ?? []);
+            $this->syncStudentBucketSubjects($student->id, (int) $data['grade_id'], $data['subject_ids'] ?? []);
             return response()->json(['success' => true, 'message' => 'Student updated.', 'data' => $this->studentDetails($student->fresh())]);
         });
     }
@@ -209,5 +211,42 @@ class AdminUserController extends Controller
     {
         $assignments = DB::table('teacher_subject_grade')->join('subjects', 'subjects.id', '=', 'teacher_subject_grade.subject_id')->join('grades', 'grades.id', '=', 'teacher_subject_grade.grade_id')->where('teacher_subject_grade.teacher_id', $teacher->id)->select('subjects.id as subject_id', 'subjects.name as subject_name', 'grades.id as grade_id', 'grades.name as grade_name')->get()->groupBy('subject_id')->map(fn ($items) => ['subject_id' => $items->first()->subject_id, 'subject_name' => $items->first()->subject_name, 'grade_ids' => $items->pluck('grade_id')->values(), 'grades' => $items->map(fn ($i) => ['id' => $i->grade_id, 'name' => $i->grade_name])->values()])->values();
         return ['id' => $teacher->id, 'name' => $teacher->name, 'user_name' => $teacher->user_name, 'email' => $teacher->email, 'mobile_number' => $teacher->mobile_number, 'is_class_teacher' => (bool) $teacher->is_class_teacher, 'is_subject_teacher' => (bool) $teacher->is_subject_teacher, 'class_teacher_grade_id' => DB::table('teacher_has_grade')->where('teacher_id', $teacher->id)->value('grade_id'), 'subject_assignments' => $assignments];
+    }
+
+    private function syncStudentBucketSubjects(int $studentId, int $gradeId, array $subjectIds): void
+    {
+        $gradeName = (string) DB::table('grades')->where('id', $gradeId)->value('name');
+        $bucketNames = [];
+        if (preg_match('/Grade ([6-9])/', $gradeName)) {
+            $bucketNames = ['Aesthetic (G6-9)'];
+        } elseif (preg_match('/Grade (10|11)/', $gradeName)) {
+            $bucketNames = ['Category 01 (G10-11)', 'Category 02 (G10-11)', 'Category 03 (G10-11)'];
+        } elseif (str_contains($gradeName, 'Arts')) {
+            $bucketNames = ['Category 01 (G12-13 Arts)', 'Category 02 (G12-13 Arts)', 'Category 03 (G12-13 Arts)'];
+        } elseif (str_contains($gradeName, 'Commerce')) {
+            $bucketNames = ['Commerce Core Electives'];
+        }
+
+        DB::table('student_has_bucket_subject')->where('student_id', $studentId)->delete();
+
+        if (empty($bucketNames) || empty($subjectIds)) {
+            return;
+        }
+
+        $shbsIds = DB::table('subject_has_bucket_subject')
+            ->join('bucket_subjects', 'bucket_subjects.id', '=', 'subject_has_bucket_subject.bucket_subject_id')
+            ->whereIn('bucket_subjects.name', $bucketNames)
+            ->whereIn('subject_has_bucket_subject.subject_id', $subjectIds)
+            ->pluck('subject_has_bucket_subject.id')
+            ->toArray();
+
+        foreach ($shbsIds as $shbsId) {
+            DB::table('student_has_bucket_subject')->insert([
+                'student_id'                    => $studentId,
+                'subject_has_bucket_subject_id' => $shbsId,
+                'created_at'                    => now(),
+                'updated_at'                    => now(),
+            ]);
+        }
     }
 }

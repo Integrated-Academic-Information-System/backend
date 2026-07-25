@@ -9,11 +9,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement('ALTER TABLE students MODIFY email VARCHAR(45) NULL');
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE students MODIFY email VARCHAR(45) NULL');
+        }
     }
 
     public function down(): void
     {
-        DB::statement('ALTER TABLE students MODIFY email VARCHAR(45) NOT NULL');
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE students MODIFY email VARCHAR(45) NOT NULL');
+        }
     }
 };

@@ -27,11 +27,10 @@ class StudentController extends Controller
         }
 
         // 2. FILTER STUDENTS BY BUCKET SUBJECT 
-        if ($gradeId && $subjectId) {
-            $isCoreSubject = DB::table('grade_has_subject')
-                ->where('grade_id', $gradeId)
-                ->where('subject_id', $subjectId)
-                ->exists();
+        if ($subjectId) {
+            $isCoreSubject = $gradeId
+                ? DB::table('grade_has_subject')->where('grade_id', $gradeId)->where('subject_id', $subjectId)->exists()
+                : DB::table('grade_has_subject')->where('subject_id', $subjectId)->exists();
 
             if (!$isCoreSubject) {
                 $query->join('student_has_bucket_subject', 'students.id', '=', 'student_has_bucket_subject.student_id')
