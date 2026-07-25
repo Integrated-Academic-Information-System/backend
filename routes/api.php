@@ -60,6 +60,7 @@ Route::middleware('auth:admin')->group(function () {
     Route::post('/admin/teachers', [AdminUserController::class, 'storeTeacher']);
     Route::get('/admin/teachers/{teacher}', [AdminUserController::class, 'showTeacher']);
     Route::put('/admin/teachers/{teacher}', [AdminUserController::class, 'updateTeacher']);
+    Route::get('/admin/users/{type}/{id}', [AdminUserController::class, 'showUser'])->whereIn('type', ['student', 'teacher']);
     Route::put('/admin/users/{type}/{id}/password', [AdminUserController::class, 'changePassword'])->whereIn('type', ['student', 'teacher']);
     Route::delete('/admin/users/{type}/{id}', [AdminUserController::class, 'destroy'])->whereIn('type', ['student', 'teacher']);
 });

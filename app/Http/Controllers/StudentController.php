@@ -33,9 +33,12 @@ class StudentController extends Controller
                 : DB::table('grade_has_subject')->where('subject_id', $subjectId)->exists();
 
             if (!$isCoreSubject) {
-                $query->join('student_has_bucket_subject', 'students.id', '=', 'student_has_bucket_subject.student_id')
-                      ->join('subject_has_bucket_subject', 'student_has_bucket_subject.subject_has_bucket_subject_id', '=', 'subject_has_bucket_subject.id')
-                      ->where('subject_has_bucket_subject.subject_id', $subjectId);
+                $query->whereIn('students.id', function ($subQuery) use ($subjectId) {
+                    $subQuery->select('student_has_bucket_subject.student_id')
+                        ->from('student_has_bucket_subject')
+                        ->join('subject_has_bucket_subject', 'student_has_bucket_subject.subject_has_bucket_subject_id', '=', 'subject_has_bucket_subject.id')
+                        ->where('subject_has_bucket_subject.subject_id', $subjectId);
+                });
             }
         }
 
@@ -67,9 +70,10 @@ class StudentController extends Controller
                          ->where('student_has_marks.exam_year_id', '=', $examYearId);
                 })
                 ->leftJoin('marks', 'student_has_marks.marks_id', '=', 'marks.id')
+                ->distinct()
                 ->get();
         } else {
-            $students = $query->select('students.*', DB::raw('NULL as marks'))->get();
+            $students = $query->select('students.*', DB::raw('NULL as marks'))->distinct()->get();
         }
 
         return response()->json([
@@ -91,7 +95,7 @@ class StudentController extends Controller
             $gradeLabel = $gradeInfo ? $gradeInfo->name : 'N/A';
 
             $coreSubjects = DB::table('grade_has_subject')->join('subjects', 'grade_has_subject.subject_id', '=', 'subjects.id')->where('grade_has_subject.grade_id', $gradeId)->select('subjects.id', 'subjects.name', 'subjects.subject_code')->get();
-            $bucketSubjects = DB::table('student_has_bucket_subject')->join('subject_has_bucket_subject', 'student_has_bucket_subject.subject_has_bucket_subject_id', '=', 'subject_has_bucket_subject.id')->join('subjects', 'subject_has_bucket_subject.subject_id', '=', 'subjects.id')->where('student_has_bucket_subject.student_id', $student->id)->select('subjects.id', 'subjects.name', 'subjects.subject_code')->get();
+            $bucketSubjects = DB::table('student_has_bucket_subject')->join('subject_has_bucket_subject', 'student_has_bucket_subject.subject_has_bucket_subject_id', '=', 'subject_has_bucket_subject.id')->join('subjects', 'subject_has_bucket_subject.subject_id', '=', 'subjects.id')->where('student_has_bucket_subject.student_id', $student->id)->select('subjects.id', 'subjects.name', 'subjects.subject_code')->distinct()->get();
 
             return response()->json([
                 'name'          => $student->name,

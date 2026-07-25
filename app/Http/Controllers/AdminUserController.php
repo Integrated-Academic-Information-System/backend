@@ -25,14 +25,14 @@ class AdminUserController extends Controller
         if (!$type || $type === 'student') {
             $students = Student::query()->with('grade:id,name')
                 ->when($search, fn ($q) => $q->where(fn ($s) => $s->where('name', 'like', "%{$search}%")->orWhere('reg_no', 'like', "%{$search}%")))
-                ->get()->map(fn ($student) => ['id' => $student->id, 'type' => 'student', 'name' => $student->name, 'user_name' => $student->reg_no, 'class' => $student->grade?->name, 'status' => $student->status]);
+                ->get()->map(fn ($student) => ['id' => "student/{$student->id}", 'type' => 'student', 'name' => $student->name, 'user_name' => $student->reg_no, 'class' => $student->grade?->name, 'status' => $student->status]);
             $users = $users->concat($students);
         }
 
         if (!$type || $type === 'teacher') {
             $teachers = Teacher::query()
                 ->when($search, fn ($q) => $q->where(fn ($s) => $s->where('name', 'like', "%{$search}%")->orWhere('user_name', 'like', "%{$search}%")))
-                ->get()->map(fn ($teacher) => ['id' => $teacher->id, 'type' => 'teacher', 'name' => $teacher->name, 'user_name' => $teacher->user_name, 'class' => null, 'status' => $teacher->access_status]);
+                ->get()->map(fn ($teacher) => ['id' => "teacher/{$teacher->id}", 'type' => 'teacher', 'name' => $teacher->name, 'user_name' => $teacher->user_name, 'class' => null, 'status' => $teacher->access_status]);
             $users = $users->concat($teachers);
         }
 
@@ -77,19 +77,34 @@ class AdminUserController extends Controller
         });
     }
 
-    public function showStudent(Student $student)
+    public function showUser(string $type, string $id)
     {
-        return response()->json(['success' => true, 'data' => $this->studentDetails($student)]);
+        $numericId = (int) preg_replace('/[^0-9]/', '', $id);
+        if ($type === 'student') {
+            $student = Student::findOrFail($numericId);
+            return response()->json(['success' => true, 'data' => $this->studentDetails($student)]);
+        } elseif ($type === 'teacher') {
+            $teacher = Teacher::findOrFail($numericId);
+            return response()->json(['success' => true, 'data' => $this->teacherDetails($teacher)]);
+        }
+        abort(404);
     }
 
-    public function updateStudent(Request $request, Student $student)
+    public function showStudent($student)
     {
-        $data = $this->validateStudent($request, $student);
-        return DB::transaction(function () use ($student, $data) {
-            $student->update($this->studentAttributes($data, false));
-            $student->subjects()->sync($data['subject_ids'] ?? []);
-            $this->syncStudentBucketSubjects($student->id, (int) $data['grade_id'], $data['subject_ids'] ?? []);
-            return response()->json(['success' => true, 'message' => 'Student updated.', 'data' => $this->studentDetails($student->fresh())]);
+        $studentModel = $student instanceof Student ? $student : Student::findOrFail((int) preg_replace('/[^0-9]/', '', (string) $student));
+        return response()->json(['success' => true, 'data' => $this->studentDetails($studentModel)]);
+    }
+
+    public function updateStudent(Request $request, $student)
+    {
+        $studentModel = $student instanceof Student ? $student : Student::findOrFail((int) preg_replace('/[^0-9]/', '', (string) $student));
+        $data = $this->validateStudent($request, $studentModel);
+        return DB::transaction(function () use ($studentModel, $data) {
+            $studentModel->update($this->studentAttributes($data, false));
+            $studentModel->subjects()->sync($data['subject_ids'] ?? []);
+            $this->syncStudentBucketSubjects($studentModel->id, (int) $data['grade_id'], $data['subject_ids'] ?? []);
+            return response()->json(['success' => true, 'message' => 'Student updated.', 'data' => $this->studentDetails($studentModel->fresh())]);
         });
     }
 
@@ -103,32 +118,36 @@ class AdminUserController extends Controller
         });
     }
 
-    public function showTeacher(Teacher $teacher)
+    public function showTeacher($teacher)
     {
-        return response()->json(['success' => true, 'data' => $this->teacherDetails($teacher)]);
+        $teacherModel = $teacher instanceof Teacher ? $teacher : Teacher::findOrFail((int) preg_replace('/[^0-9]/', '', (string) $teacher));
+        return response()->json(['success' => true, 'data' => $this->teacherDetails($teacherModel)]);
     }
 
-    public function updateTeacher(Request $request, Teacher $teacher)
+    public function updateTeacher(Request $request, $teacher)
     {
-        $data = $this->validateTeacher($request, $teacher);
-        return DB::transaction(function () use ($teacher, $data) {
-            $teacher->update($this->teacherAttributes($data, false));
-            $this->syncTeacherAssignments($teacher, $data);
-            return response()->json(['success' => true, 'message' => 'Teacher updated.', 'data' => $this->teacherDetails($teacher->fresh())]);
+        $teacherModel = $teacher instanceof Teacher ? $teacher : Teacher::findOrFail((int) preg_replace('/[^0-9]/', '', (string) $teacher));
+        $data = $this->validateTeacher($request, $teacherModel);
+        return DB::transaction(function () use ($teacherModel, $data) {
+            $teacherModel->update($this->teacherAttributes($data, false));
+            $this->syncTeacherAssignments($teacherModel, $data);
+            return response()->json(['success' => true, 'message' => 'Teacher updated.', 'data' => $this->teacherDetails($teacherModel->fresh())]);
         });
     }
 
-    public function changePassword(Request $request, string $type, int $id)
+    public function changePassword(Request $request, string $type, string $id)
     {
+        $numericId = (int) preg_replace('/[^0-9]/', '', $id);
         $data = $request->validate(['password' => ['required', 'string', 'min:8', 'confirmed']]);
-        $model = $type === 'student' ? Student::findOrFail($id) : ($type === 'teacher' ? Teacher::findOrFail($id) : abort(404));
+        $model = $type === 'student' ? Student::findOrFail($numericId) : ($type === 'teacher' ? Teacher::findOrFail($numericId) : abort(404));
         $model->update(['password' => Hash::make($data['password'])]);
         return response()->json(['success' => true, 'message' => 'Password changed.']);
     }
 
-    public function destroy(string $type, int $id)
+    public function destroy(string $type, string $id)
     {
-        $model = $type === 'student' ? Student::findOrFail($id) : ($type === 'teacher' ? Teacher::findOrFail($id) : abort(404));
+        $numericId = (int) preg_replace('/[^0-9]/', '', $id);
+        $model = $type === 'student' ? Student::findOrFail($numericId) : ($type === 'teacher' ? Teacher::findOrFail($numericId) : abort(404));
         $model->delete();
         return response()->json(['success' => true, 'message' => 'User deleted.']);
     }
@@ -199,7 +218,7 @@ class AdminUserController extends Controller
     private function studentDetails(Student $student): array
     {
         $student->load(['grade:id,name', 'subjects:id,name,subject_code']);
-        return ['id' => $student->id, 'name' => $student->name, 'reg_no' => $student->reg_no, 'grade_id' => $student->grade_id, 'grade' => $student->grade, 'subjects' => $student->subjects, 'address' => $student->address, 'dob' => $student->dob, 'reg_date' => $student->reg_date, 'mobile_number' => $student->mobile_number, 'email' => $student->email];
+        return ['id' => "student/{$student->id}", 'name' => $student->name, 'reg_no' => $student->reg_no, 'grade_id' => $student->grade_id, 'grade' => $student->grade, 'subjects' => $student->subjects, 'address' => $student->address, 'dob' => $student->dob, 'reg_date' => $student->reg_date, 'mobile_number' => $student->mobile_number, 'email' => $student->email];
     }
 
     private function gradeSubjectsData(int $grade): array
@@ -210,7 +229,7 @@ class AdminUserController extends Controller
     private function teacherDetails(Teacher $teacher): array
     {
         $assignments = DB::table('teacher_subject_grade')->join('subjects', 'subjects.id', '=', 'teacher_subject_grade.subject_id')->join('grades', 'grades.id', '=', 'teacher_subject_grade.grade_id')->where('teacher_subject_grade.teacher_id', $teacher->id)->select('subjects.id as subject_id', 'subjects.name as subject_name', 'grades.id as grade_id', 'grades.name as grade_name')->get()->groupBy('subject_id')->map(fn ($items) => ['subject_id' => $items->first()->subject_id, 'subject_name' => $items->first()->subject_name, 'grade_ids' => $items->pluck('grade_id')->values(), 'grades' => $items->map(fn ($i) => ['id' => $i->grade_id, 'name' => $i->grade_name])->values()])->values();
-        return ['id' => $teacher->id, 'name' => $teacher->name, 'user_name' => $teacher->user_name, 'email' => $teacher->email, 'mobile_number' => $teacher->mobile_number, 'is_class_teacher' => (bool) $teacher->is_class_teacher, 'is_subject_teacher' => (bool) $teacher->is_subject_teacher, 'class_teacher_grade_id' => DB::table('teacher_has_grade')->where('teacher_id', $teacher->id)->value('grade_id'), 'subject_assignments' => $assignments];
+        return ['id' => "teacher/{$teacher->id}", 'name' => $teacher->name, 'user_name' => $teacher->user_name, 'email' => $teacher->email, 'mobile_number' => $teacher->mobile_number, 'is_class_teacher' => (bool) $teacher->is_class_teacher, 'is_subject_teacher' => (bool) $teacher->is_subject_teacher, 'class_teacher_grade_id' => DB::table('teacher_has_grade')->where('teacher_id', $teacher->id)->value('grade_id'), 'subject_assignments' => $assignments];
     }
 
     private function syncStudentBucketSubjects(int $studentId, int $gradeId, array $subjectIds): void

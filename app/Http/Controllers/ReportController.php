@@ -27,6 +27,7 @@ class ReportController extends Controller
             ->leftJoin('marks', 'student_has_marks.marks_id', '=', 'marks.id')
             ->select('students.reg_no', 'students.name', 'marks.mark')
             ->where('students.grade_id', $gradeId)
+            ->distinct()
             ->get();
 
         if ($request->query('format') !== 'xlsx') {
