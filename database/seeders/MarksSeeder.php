@@ -83,6 +83,7 @@ class MarksSeeder extends Seeder
                     'subject_id'     => $subjectId,
                     'term_id'        => $termId,
                     'grade_id'       => $gradeId,
+                    'mark'           => $obtained,
                     'marks_obtained' => $obtained,
                     'total_marks'    => $total,
                     'grade_letter'   => $gradeLetter,
