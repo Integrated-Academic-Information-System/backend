@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
@@ -14,18 +16,19 @@ class Student extends Authenticatable implements JWTSubject
         'password',
         'name',
         'address',
+        'dob',
         'reg_date',
         'leave_date',
         'mobile_number',
         'email',
         'status',
+        'grade_id',
     ];
 
     protected $hidden = [
         'password',
     ];
 
-    // Required for JWT if students can also login
     public function getJWTIdentifier()
     {
         return $this->getKey();
@@ -34,5 +37,15 @@ class Student extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims()
     {
         return [];
+    }
+
+    public function grade(): BelongsTo
+    {
+        return $this->belongsTo(Grade::class);
+    }
+
+    public function studentMarks(): HasMany
+    {
+        return $this->hasMany(StudentHasMark::class);
     }
 }
