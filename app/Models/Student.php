@@ -13,6 +13,7 @@ class Student extends Authenticatable implements JWTSubject
         'reg_no',
         'password',
         'name',
+        'grade_id',
         'address',
         'dob',
         'reg_date',
@@ -29,7 +30,12 @@ class Student extends Authenticatable implements JWTSubject
 
     public function grade()
     {
-        return $this->belongsTo(Grade::class, 'grade_has_sub_grade_id', 'id');
+        return $this->belongsTo(Grade::class, 'grade_id', 'id');
+    }
+
+    public function subjects()
+    {
+        return $this->belongsToMany(Subject::class, 'student_has_subject')->withTimestamps();
     }
 
     // Required for JWT if students can also login

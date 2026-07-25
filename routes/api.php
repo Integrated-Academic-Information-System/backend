@@ -11,6 +11,7 @@ use App\Http\Controllers\FormDataController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\StudentDashboardController;
+use App\Http\Controllers\AdminUserController;
 /*
     Public Routes
     */
@@ -30,6 +31,7 @@ Route::get('/form-data', [FormDataController::class, 'getDropdownData']);
 
 // Generate report
 Route::get('/generate-report', [ReportController::class, 'generateReport']);
+Route::get('/reports/marks/export', [ReportController::class, 'generateReport']);
 
 /*
     Protected Routes (Require Authentication)
@@ -46,6 +48,18 @@ Route::middleware('auth:student')->group(function () {
 // Logout
 Route::middleware('auth:admin')->group(function () {
     Route::post('/admin/logout', [AuthController::class, 'logout']);
+    Route::get('/admin/users', [AdminUserController::class, 'index']);
+    Route::get('/admin/grades', [AdminUserController::class, 'grades']);
+    Route::get('/admin/user-management/form-data', [AdminUserController::class, 'formData']);
+    Route::get('/admin/grades/{grade}/subjects', [AdminUserController::class, 'gradeSubjects']);
+    Route::post('/admin/students', [AdminUserController::class, 'storeStudent']);
+    Route::get('/admin/students/{student}', [AdminUserController::class, 'showStudent']);
+    Route::put('/admin/students/{student}', [AdminUserController::class, 'updateStudent']);
+    Route::post('/admin/teachers', [AdminUserController::class, 'storeTeacher']);
+    Route::get('/admin/teachers/{teacher}', [AdminUserController::class, 'showTeacher']);
+    Route::put('/admin/teachers/{teacher}', [AdminUserController::class, 'updateTeacher']);
+    Route::put('/admin/users/{type}/{id}/password', [AdminUserController::class, 'changePassword'])->whereIn('type', ['student', 'teacher']);
+    Route::delete('/admin/users/{type}/{id}', [AdminUserController::class, 'destroy'])->whereIn('type', ['student', 'teacher']);
 });
 
 Route::middleware('auth:teacher')->group(function () {
