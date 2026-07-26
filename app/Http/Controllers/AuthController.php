@@ -97,4 +97,56 @@ class AuthController extends Controller
 
         return response()->json(['message' => 'Logged out']);
     }
+
+    /**
+     * Validate the stored token and return the current user's identity.
+     * Called by the app on startup to restore the session without re-login.
+     */
+    public function me(Request $request)
+    {
+        try {
+            $token = JWTAuth::getToken();
+
+            if (!$token) {
+                return response()->json(['message' => 'Token not provided'], 401);
+            }
+
+            // Try each guard in order — the token payload encodes which model was used
+            foreach (['admin', 'student', 'teacher'] as $guard) {
+                try {
+                    $user = auth($guard)->setToken($token)->authenticate();
+                    if ($user) {
+                        $role = $guard; // 'admin' | 'student' | 'teacher'
+
+                        $responseData = [
+                            'success'      => true,
+                            'role'         => $role,
+                            'user_name'    => $user instanceof Admin
+                                ? $user->user_name
+                                : ($user instanceof Student ? $user->reg_no : $user->user_name),
+                            'teacher_status' => $user instanceof Teacher ? $user->role_status : null,
+                        ];
+
+                        if ($user instanceof Teacher) {
+                            $responseData['teacher_id']     = $user->id;
+                            $responseData['name']           = $user->name;
+                            $responseData['email']          = $user->email;
+                            $responseData['mobile_number']  = $user->mobile_number;
+                        }
+
+                        return response()->json($responseData);
+                    }
+                } catch (\Tymon\JWTAuth\Exceptions\TokenExpiredException $e) {
+                    return response()->json(['message' => 'Token expired'], 401);
+                } catch (\Throwable $e) {
+                    // This guard did not match — try the next one
+                    continue;
+                }
+            }
+
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Invalid token'], 401);
+        }
+    }
 }

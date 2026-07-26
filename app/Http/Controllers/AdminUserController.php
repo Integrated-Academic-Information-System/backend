@@ -11,6 +11,28 @@ use Illuminate\Validation\Rule;
 
 class AdminUserController extends Controller
 {
+    public function dashboardStats()
+    {
+        $totalStudents = Student::count();
+        $totalTeachers = Teacher::count();
+        $totalSubjects = DB::table('subjects')->count();
+        $totalUsers    = $totalStudents + $totalTeachers;
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'students'       => $totalStudents,
+                'teachers'       => $totalTeachers,
+                'subjects'       => $totalSubjects,
+                'users'          => $totalUsers,
+                'total_students' => $totalStudents,
+                'total_teachers' => $totalTeachers,
+                'total_subjects' => $totalSubjects,
+                'total_users'    => $totalUsers,
+            ],
+        ]);
+    }
+
     public function grades()
     {
         return response()->json(['success' => true, 'data' => DB::table('grades')->select('id', 'name')->orderBy('name')->get()]);
@@ -150,6 +172,34 @@ class AdminUserController extends Controller
         $model = $type === 'student' ? Student::findOrFail($numericId) : ($type === 'teacher' ? Teacher::findOrFail($numericId) : abort(404));
         $model->delete();
         return response()->json(['success' => true, 'message' => 'User deleted.']);
+    }
+
+    public function destroyStudent($student)
+    {
+        $numericId = is_numeric($student)
+            ? (int) $student
+            : (int) preg_replace('/[^0-9]/', '', (string) $student);
+
+        $model = Student::findOrFail($numericId);
+
+        return DB::transaction(function () use ($model) {
+            $model->delete();
+            return response()->json(['success' => true, 'message' => 'Student deleted.']);
+        });
+    }
+
+    public function destroyTeacher($teacher)
+    {
+        $numericId = is_numeric($teacher)
+            ? (int) $teacher
+            : (int) preg_replace('/[^0-9]/', '', (string) $teacher);
+
+        $model = Teacher::findOrFail($numericId);
+
+        return DB::transaction(function () use ($model) {
+            $model->delete();
+            return response()->json(['success' => true, 'message' => 'Teacher deleted.']);
+        });
     }
 
     private function validateStudent(Request $request, ?Student $student = null): array
